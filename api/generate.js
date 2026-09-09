@@ -1,12 +1,19 @@
+// api/generate.js - Vercel Serverless - veo3.1 with sound
 export default async function handler(req, res) {
-  const { prompt } = req.body;
-  const apiKey = process.env.RUNWAY_API_KEY;
-  const r = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'X-Runway-Version': '2024-11-06' },
-    body: JSON.stringify({ promptText: prompt, model: 'gen4.5', duration: 5, ratio: '1280:720' })
-  });
-  const data = await r.json();
-  if (!r.ok) return res.json({ error: data.message, raw: data });
-  return res.json({ taskId: data.id, status: 'STARTED' });
+  if (req.method!== 'POST') return res.status(405).json({ error: 'POST only' });
+  const { prompt, duration = 8, style = 'cinematic', characterName } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
+  const KIE_API_KEY = process.env.KIE_API_KEY;
+  if (!KIE_API_KEY) return res.status(500).json({ error: 'Missing KIE_API_KEY in Vercel env' });
+  const fullPrompt = `${style} style, ${characterName || ''} - ${prompt}, with voice and sound, lip-sync, no subtitles`.trim();
+  try {
+    const r = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${KIE_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'veo3.1', input: { prompt: fullPrompt, duration, aspect_ratio: '16:9', generate_audio: true } })
+    });
+    const data = await r.json();
+    if (!r.ok) return res.status(500).json({ error: data.msg || 'Kie error', details: data });
+    return res.status(200).json({ taskId: data.data?.taskId || data.taskId, status: 'generating' });
+  } catch (e) { return res.status(500).json({ error: e.message }); }
 }
