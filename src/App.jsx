@@ -1,43 +1,139 @@
 import { useState } from 'react';
-export default function App(){
-const [step,setStep]=useState(1);
-const [idea,setIdea]=useState('');
-const [title,setTitle]=useState('MY CINEMATIC FILM');
-const [duration,setDuration]=useState('60');
-const [style,setStyle]=useState('cinematic');
-const [chars,setChars]=useState([]);
-const [nc,setNc]=useState({name:'',look:'',personality:'',voice:''});
-const [scenes,setScenes]=useState([]);
-const [gen,setGen]=useState(false);
-const [plan,setPlan]=useState('creator');
-const add=()=>{if(!nc.name) return; setChars([...chars,{...nc,id:Date.now()}]); setNc({name:'',look:'',personality:'',voice:''});};
-const make=()=>{const c=Math.ceil(parseInt(duration)/8); setScenes(Array.from({length:c},(_,i)=>({id:i+1,script:`Scene ${i+1}: ${idea.slice(0,80)}...`,status:'pending'}))); setStep(6);};
-const generate=async()=>{setGen(true); for(let i=0;i<scenes.length;i++){setScenes(p=>p.map((s,j)=>j===i?{...s,status:'generating'}:s)); await new Promise(r=>setTimeout(r,1200)); setScenes(p=>p.map((s,j)=>j===i?{...s,status:'done'}:s));} setGen(false); setStep(7);};
-return(
-<div style={{background:'radial-gradient(1200px 600px at 20% -10%, rgba(255,215,0,0.15), transparent), radial-gradient(800px 400px at 90% 0%, rgba(255,215,0,0.08), transparent), #060608',minHeight:'100vh',color:'#fff',fontFamily:'Inter, -apple-system, sans-serif'}}>
-<style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;600;700&display=swap');`}</style>
-<header style={{display:'flex',justifyContent:'space-between',padding:'22px 36px',borderBottom:'1px solid rgba(255,255,255,0.06)',backdropFilter:'blur(12px)',position:'sticky',top:0,zIndex:10,background:'rgba(6,6,8,0.8)'}}>
-<div style={{display:'flex',alignItems:'center',gap:'10px'}}><div style={{width:'32px',height:'32px',background:'#FFD700',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',color:'#000',fontWeight:900,fontFamily:'Syne'}}>G</div><div style={{fontWeight:800,fontFamily:'Syne',letterSpacing:'-0.5px'}}>GABBOSS<span style={{color:'#FFD700'}}>.AI</span> <span style={{opacity:0.5,fontWeight:400}}>FILM STUDIO</span></div></div>
-<div style={{display:'flex',gap:'10px',alignItems:'center'}}><div style={{background:'rgba(255,215,0,0.12)',border:'1px solid rgba(255,215,0,0.3)',padding:'6px 14px',borderRadius:'20px',fontSize:'11px',fontWeight:700,letterSpacing:'0.5px'}}>● 250 CREDITS</div><button style={{background:'#fff',color:'#000',border:'none',padding:'9px 18px',borderRadius:'20px',fontWeight:700,fontSize:'13px'}}>Login</button></div>
-</header>
-<div style={{display:'flex',justifyContent:'center',gap:'0',padding:'28px 20px',maxWidth:'1100px',margin:'0 auto'}}>
-{[['Your Story','Any idea'],['Account','Secure'],['Plan','Scale'],['Create','Title'],['Duration','30s-3min'],['Characters','Anybody'],['Generate','veo3.1']].map((s,i)=><div key={i} style={{display:'flex',alignItems:'center'}}><div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'6px'}}><div style={{width:'36px',height:'36px',borderRadius:'12px',background:step>i? '#FFD700': step===i+1? 'rgba(255,215,0,0.15)':'rgba(255,255,255,0.06)',border: step===i+1? '1px solid #FFD700':'1px solid rgba(255,255,255,0.06)',color:step>i? '#000': step===i+1? '#FFD700':'#666',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:'13px',transition:'all 0.3s'}}>{step>i? '✓': i+1}</div><div style={{textAlign:'center'}}><div style={{fontSize:'11px',fontWeight:700,color:step>=i+1? '#fff':'#555'}}>{s[0]}</div><div style={{fontSize:'9px',color:'#666'}}>{s[1]}</div></div></div>{i<6&&<div style={{width:'36px',height:'1px',background:step>i+1? 'rgba(255,215,0,0.4)':'rgba(255,255,255,0.08)',margin:'0 6px 16px'}}/>}</div>)}
-</div>
-<div style={{maxWidth:'1200px',margin:'0 auto',padding:'0 24px 80px',display:'grid',gridTemplateColumns:'1.15fr 0.85fr',gap:'22px'}}>
-<div style={{background:'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'28px',padding:'34px',backdropFilter:'blur(20px)',boxShadow:'0 20px 60px rgba(0,0,0,0.5)'}}>
-{step===1&&<div><div style={{display:'inline-flex',background:'rgba(255,215,0,0.1)',border:'1px solid rgba(255,215,0,0.2)',padding:'6px 12px',borderRadius:'20px',fontSize:'10px',fontWeight:700,letterSpacing:'1px',color:'#FFD700',marginBottom:'18px'}}>STEP 1 • YOUR UNIVERSE</div><h1 style={{fontSize:'52px',lineHeight:0.9,letterSpacing:'-2.5px',margin:0,fontFamily:'Syne',fontWeight:800}}>YOUR STORY,<br/><span style={{color:'#FFD700'}}>YOUR FILM.</span></h1><p style={{color:'rgba(255,255,255,0.5)',margin:'16px 0 28px',fontSize:'15px',lineHeight:1.5}}>Turn any idea into cinematic episodes. Real people, fictional characters, yourself — anybody can star. veo3.1 with voice + sound.</p><div style={{position:'relative'}}><textarea value={idea} onChange={e=>setIdea(e.target.value)} placeholder="A cyberpunk detective who is actually you, hunting a dragon in neo-Tokyo... (any genre, any world, anybody)" style={{width:'100%',height:'136px',background:'rgba(0,0,0,0.6)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'18px',padding:'18px',color:'#fff',fontSize:'14px',outline:'none',resize:'none'}}/><div style={{position:'absolute',bottom:'12px',right:'12px',fontSize:'10px',color:'#666'}}>{idea.length}/500</div></div><button onClick={()=>idea&&setStep(2)} disabled={!idea} style={{marginTop:'20px',background: idea? '#FFD700':'#222',color: idea? '#000':'#555',border:'none',padding:'16px',borderRadius:'16px',fontWeight:800,width:'100%',fontSize:'14px',letterSpacing:'0.5px',cursor: idea? 'pointer':'not-allowed',transition:'all 0.2s'}}>CONTINUE →</button></div>}
-{step===2&&<div><h2 style={{fontFamily:'Syne',fontSize:'28px',margin:0}}>Create Account</h2><p style={{color:'#666',fontSize:'13px',marginTop:'6px'}}>Secure your films & episodes</p><input placeholder="Email address" style={{width:'100%',background:'rgba(0,0,0,0.6)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'14px',padding:'15px',color:'#fff',marginTop:'24px',outline:'none'}}/><input placeholder="Password" type="password" style={{width:'100%',background:'rgba(0,0,0,0.6)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'14px',padding:'15px',color:'#fff',marginTop:'12px',outline:'none'}}/><button onClick={()=>setStep(3)} style={{marginTop:'20px',background:'#FFD700',color:'#000',border:'none',padding:'15px',borderRadius:'14px',fontWeight:800,width:'100%',cursor:'pointer'}}>CREATE ACCOUNT & CONTINUE</button></div>}
-{step===3&&<div><h2 style={{fontFamily:'Syne',fontSize:'28px',margin:0}}>Choose Plan</h2><div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'12px',marginTop:'24px'}}>{[{id:'free',n:'Free',p:'$0',f:'1 film/mo'},{id:'creator',n:'Creator',p:'$19',f:'10 films/mo',pop:true},{id:'studio',n:'Studio',p:'$99',f:'Unlimited'}].map(x=><div key={x.id} onClick={()=>setPlan(x.id)} style={{border:plan===x.id? '1.5px solid #FFD700':'1px solid rgba(255,255,255,0.08)',background: plan===x.id? 'rgba(255,215,0,0.08)':'rgba(0,0,0,0.4)',borderRadius:'18px',padding:'18px',cursor:'pointer',position:'relative'}}>{x.pop&&<div style={{position:'absolute',top:'-8px',right:'12px',background:'#FFD700',color:'#000',fontSize:'8px',fontWeight:800,padding:'3px 8px',borderRadius:'10px',letterSpacing:'0.5px'}}>POPULAR</div>}<div style={{fontWeight:700,fontSize:'14px'}}>{x.n}</div><div style={{fontWeight:900,fontSize:'22px',marginTop:'4px'}}>{x.p}<span style={{fontSize:'11px',opacity:0.5}}>/mo</span></div><div style={{fontSize:'11px',color:'#888',marginTop:'8px'}}>{x.f}</div></div>)}</div><button onClick={()=>setStep(4)} style={{marginTop:'20px',background:'#FFD700',color:'#000',border:'none',padding:'15px',borderRadius:'14px',fontWeight:800,width:'100%',cursor:'pointer'}}>CONTINUE WITH {plan.toUpperCase()}</button></div>}
-{step===4&&<div><h2 style={{fontFamily:'Syne',fontSize:'28px',margin:0}}>Name Your Film</h2><p style={{color:'#666',fontSize:'13px',marginTop:'6px'}}>This becomes S1 E1, then E2, E3...</p><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="My Cinematic Film" style={{width:'100%',background:'rgba(0,0,0,0.6)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'14px',padding:'16px',color:'#fff',marginTop:'24px',fontSize:'16px',fontWeight:600,outline:'none'}}/><div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'14px',padding:'14px',marginTop:'16px',fontSize:'12px',color:'#888'}}>Story: {idea.slice(0,100)}...</div><button onClick={()=>setStep(5)} style={{marginTop:'20px',background:'#FFD700',color:'#000',border:'none',padding:'15px',borderRadius:'14px',fontWeight:800,width:'100%',cursor:'pointer'}}>NEXT: DURATION →</button></div>}
-{step===5&&<div><h2 style={{fontFamily:'Syne',fontSize:'28px',margin:0}}>Duration & Style</h2><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginTop:'24px'}}>{[{v:'30',l:'30s Trailer',d:'3 scenes'},{v:'60',l:'60s Film',d:'7 scenes'},{v:'120',l:'2min Episode',d:'15 scenes'},{v:'180',l:'3min Episode',d:'22 scenes'}].map(d=><div key={d.v} onClick={()=>setDuration(d.v)} style={{border:duration===d.v? '1.5px solid #FFD700':'1px solid rgba(255,255,255,0.08)',background:duration===d.v? 'rgba(255,215,0,0.08)':'rgba(0,0,0,0.4)',borderRadius:'16px',padding:'16px',cursor:'pointer'}}><div style={{fontWeight:700,fontSize:'14px'}}>{d.l}</div><div style={{fontSize:'11px',color:'#888',marginTop:'4px'}}>{d.d} • veo3.1</div></div>)}</div><div style={{marginTop:'24px'}}><div style={{fontSize:'11px',fontWeight:700,letterSpacing:'1px',color:'#888',marginBottom:'10px'}}>CHARACTER STYLE</div><div style={{display:'flex',gap:'8px'}}>{[['realistic','Realistic Human'],['cinematic','Cinematic Film'],['cartoon','Pixar Cartoon']].map(s=><button key={s[0]} onClick={()=>setStyle(s[0])} style={{flex:1,padding:'12px 8px',borderRadius:'12px',border:style===s[0]? '1.5px solid #FFD700':'1px solid rgba(255,255,255,0.08)',background:style===s[0]? '#FFD700':'rgba(255,255,255,0.04)',color:style===s[0]? '#000':'#fff',fontWeight:700,fontSize:'11px',cursor:'pointer'}}>{s[1]}</button>)}</div><div style={{fontSize:'10px',color:'#666',marginTop:'8px'}}>{style==='realistic'? 'Real humans - like you, John Wick, etc' : style==='cinematic'? 'Film grade anamorphic' : '3D animated Pixar style'}</div></div><button onClick={make} style={{marginTop:'24px',background:'#FFD700',color:'#000',border:'none',padding:'15px',borderRadius:'14px',fontWeight:800,width:'100%',cursor:'pointer'}}>CREATE {duration}s {style.toUpperCase()} FILM →</button></div>}
-{step===6&&<div><h2 style={{fontFamily:'Syne',fontSize:'24px',margin:0}}>Cast: ANYBODY</h2><p style={{color:'#666',fontSize:'12px',marginTop:'6px'}}>Real, fictional, historical, yourself — anybody. {style} style.</p><div style={{background:'rgba(0,0,0,0.5)',border:'1px dashed rgba(255,255,255,0.15)',borderRadius:'18px',padding:'18px',marginTop:'18px'}}><input value={nc.name} onChange={e=>setNc({...nc,name:e.target.value})} placeholder="Who? e.g. Yourself, John Wick, Elon Musk, a dragon, your dog..." style={{width:'100%',background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'12px',padding:'13px',color:'#fff',marginBottom:'8px',outline:'none',fontSize:'13px'}}/><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}><input value={nc.look} onChange={e=>setNc({...nc,look:e.target.value})} placeholder="Look: age, clothes, hair" style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'12px',padding:'13px',color:'#fff',outline:'none',fontSize:'13px'}}/><input value={nc.personality} onChange={e=>setNc({...nc,personality:e.target.value})} placeholder="Personality + voice" style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'12px',padding:'13px',color:'#fff',outline:'none',fontSize:'13px'}}/></div><button onClick={add} style={{marginTop:'12px',background:'#fff',color:'#000',border:'none',padding:'10px 16px',borderRadius:'20px',fontWeight:700,fontSize:'12px',cursor:'pointer'}}>+ ADD CHARACTER</button></div><div style={{marginTop:'16px',display:'flex',flexWrap:'wrap',gap:'8px'}}>{chars.map(c=><div key={c.id} style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:'20px',padding:'8px 14px',fontSize:'12px'}}><span style={{fontWeight:700}}>{c.name}</span><span style={{color:'#888'}}> • {c.look}</span></div>)}</div><div style={{marginTop:'20px',maxHeight:'180px',overflow:'auto'}}>{scenes.map(s=><div key={s.id} style={{background:'rgba(0,0,0,0.4)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'12px',padding:'12px 14px',marginBottom:'6px',display:'flex',justifyContent:'space-between',alignItems:'center'}}><span style={{fontSize:'11px',color:'#ccc'}}>SCENE {s.id} • 8s • {s.status}</span><span style={{width:'8px',height:'8px',borderRadius:'50%',background:s.status==='done'? '#0f0': s.status==='generating'? '#FFD700':'#333'}}/></div>)}</div><button onClick={generate} disabled={gen || chars.length===0} style={{marginTop:'20px',background:gen||chars.length===0? '#222':'#FFD700',color:gen||chars.length===0? '#555':'#000',border:'none',padding:'17px',borderRadius:'16px',fontWeight:900,width:'100%',letterSpacing:'0.5px',cursor: gen? 'not-allowed':'pointer',fontSize:'14px'}}>{gen? '🎬 GENERATING VEO3.1...': chars.length===0? 'ADD A CHARACTER FIRST' : `🎬 GENERATE ${duration}s FILM • ${scenes.length} SCENES`}</button></div>}
-{step===7&&<div><div style={{display:'inline-flex',background:'#0f0',color:'#000',padding:'4px 10px',borderRadius:'20px',fontSize:'10px',fontWeight:800,letterSpacing:'0.5px'}}>● FILM READY</div><h2 style={{fontFamily:'Syne',fontSize:'28px',margin:'12px 0 0'}}>{title} — S1 E1</h2><div style={{background:'#000',borderRadius:'20px',aspectRatio:'16/9',display:'flex',alignItems:'center',justifyContent:'center',border:'1px solid rgba(255,255,255,0.1)',marginTop:'20px',position:'relative',overflow:'hidden'}}><div style={{position:'absolute',inset:0,background:'radial-gradient(600px 300px at 50% 0%, rgba(255,215,0,0.15), transparent)'}}/><div style={{zIndex:1,textAlign:'center'}}><div style={{fontSize:'36px'}}>🎬</div><div style={{fontWeight:700,marginTop:'8px'}}>{duration}s • {style.toUpperCase()}</div><div style={{fontSize:'11px',color:'#666',marginTop:'4px'}}>{chars.length} characters • veo3.1 with voice</div></div></div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginTop:'16px'}}><button style={{background:'#FFD700',color:'#000',border:'none',padding:'14px',borderRadius:'14px',fontWeight:800,cursor:'pointer'}}>⬇ DOWNLOAD FILM</button><button style={{background:'rgba(255,255,255,0.08)',color:'#fff',border:'1px solid rgba(255,255,255,0.1)',padding:'14px',borderRadius:'14px',fontWeight:700,cursor:'pointer'}}>📤 PUBLISH</button></div><button onClick={()=>setStep(1)} style={{marginTop:'12px',background:'transparent',color:'#666',border:'none',padding:'10px',width:'100%',fontSize:'12px',cursor:'pointer'}}>Create Next Episode → S1 E2 (same cast)</button></div>}
-</div>
-<div style={{display:'flex',flexDirection:'column',gap:'18px'}}>
-<div style={{background:'linear-gradient(180deg, rgba(255,215,0,0.08), rgba(255,255,255,0.02))',border:'1px solid rgba(255,215,0,0.15)',borderRadius:'24px',padding:'20px',backdropFilter:'blur(20px)'}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><h3 style={{fontSize:'11px',fontWeight:800,letterSpacing:'1px',color:'#FFD700',margin:0}}>LIVE PREVIEW • VEO3.1</h3><div style={{width:'6px',height:'6px',background:'#0f0',borderRadius:'50%',boxShadow:'0 0 8px #0f0'}}/></div><div style={{background:'#000',borderRadius:'18px',aspectRatio:'16/9',marginTop:'14px',display:'flex',alignItems:'center',justifyContent:'center',border:'1px solid rgba(255,255,255,0.08)',position:'relative',overflow:'hidden'}}><div style={{position:'absolute',inset:0,background:`radial-gradient(400px 200px at 50% 30%, ${style==='realistic'? 'rgba(255,215,0,0.1)': style==='cartoon'? 'rgba(100,200,255,0.1)':'rgba(255,100,100,0.1)'}, transparent)`}}/><span style={{color:'#444',fontSize:'11px',zIndex:1}}>{idea? idea.slice(0,40)+'...' : 'Preview will appear here'}</span></div><div style={{marginTop:'14px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',fontSize:'11px'}}><div style={{background:'rgba(0,0,0,0.4)',padding:'10px 12px',borderRadius:'12px',border:'1px solid rgba(255,255,255,0.06)'}}><div style={{color:'#666',fontSize:'9px',letterSpacing:'1px'}}>DURATION</div><div style={{fontWeight:700,marginTop:'2px'}}>{duration}s • {scenes.length||Math.ceil(parseInt(duration)/8)} scenes</div></div><div style={{background:'rgba(0,0,0,0.4)',padding:'10px 12px',borderRadius:'12px',border:'1px solid rgba(255,255,255,0.06)'}}><div style={{color:'#666',fontSize:'9px',letterSpacing:'1px'}}>STYLE</div><div style={{fontWeight:700,marginTop:'2px',textTransform:'uppercase'}}>{style}</div></div><div style={{background:'rgba(0,0,0,0.4)',padding:'10px 12px',borderRadius:'12px',border:'1px solid rgba(255,255,255,0.06)'}}><div style={{color:'#666',fontSize:'9px',letterSpacing:'1px'}}>CAST</div><div style={{fontWeight:700,marginTop:'2px'}}>{chars.length} anybody</div></div><div style={{background:'rgba(0,0,0,0.4)',padding:'10px 12px',borderRadius:'12px',border:'1px solid rgba(255,255,255,0.06)'}}><div style={{color:'#666',fontSize:'9px',letterSpacing:'1px'}}>MODEL</div><div style={{fontWeight:700,marginTop:'2px'}}>veo3.1 + audio</div></div></div><div style={{marginTop:'12px',background:'rgba(0,0,0,0.5)',borderRadius:'12px',padding:'12px',fontSize:'10px',color:'#666',lineHeight:1.4}}>Film: {title}<br/>Idea: {idea.slice(0,60)||'Not set yet'}<br/>Episodic: S1 E1 ready for series</div></div>
-<div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'20px',padding:'16px'}}><div style={{fontSize:'11px',fontWeight:700,letterSpacing:'0.5px'}}>STORY BIBLE</div><div style={{fontSize:'11px',color:'#666',marginTop:'8px',lineHeight:1.5}}>Characters persist across episodes. Same {style} look, same voice, same personality for S1 E1→E∞. This is your universe.</div></div>
-</div>
-</div>
-</div>
-);
+
+export default function App() {
+  const [step, setStep] = useState(1);
+  const [story, setStory] = useState('');
+  const [characters, setCharacters] = useState([]);
+  const [charInput, setCharInput] = useState('');
+  const [duration, setDuration] = useState(60);
+  const [style, setStyle] = useState('realistic');
+  const [generating, setGenerating] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [videos, setVideos] = useState([]);
+  const [error, setError] = useState('');
+
+  const addCharacter = () => {
+    if(charInput.trim()) {
+      setCharacters([...characters, charInput.trim()]);
+      setCharInput('');
+    }
+  };
+
+  const generateReal = async () => {
+    setGenerating(true);
+    setProgress(10);
+    setError('');
+    setVideos([]);
+
+    try {
+      const fullPrompt = `${style} style, cinematic 4k: ${story}. Starring: ${characters.join(', ')}. ${style === 'realistic' ? 'photorealistic, 8k detail' : style === 'cinematic' ? 'anamorphic lens, dramatic lighting' : 'pixar style animation'} -- duration ${duration}s with voice and sound`;
+
+      setProgress(30);
+
+      // CALL YOUR BACKEND
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ prompt: fullPrompt, duration })
+      });
+
+      setProgress(60);
+
+      if(!res.ok) {
+        const err = await res.text();
+        throw new Error(err || 'KIE API failed');
+      }
+
+      const data = await res.json();
+      
+      setProgress(90);
+      
+      // KIE returns video_url or task
+      if(data.video_url || data.url || data.data?.video_url) {
+        setVideos([data.video_url || data.url || data.data.video_url]);
+      } else if(data.task_id) {
+        // polling if async
+        setError('Video generating... task: ' + data.task_id + ' — check KIE dashboard');
+      } else {
+        setVideos([JSON.stringify(data)]); // show raw for debug
+      }
+
+      setProgress(100);
+      setStep(6);
+
+    } catch(e) {
+      setError(e.message);
+      console.error(e);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <div style={{background:'#000', color:'#fff', minHeight:'100vh', fontFamily:'Syne, sans-serif', padding:'20px'}}>
+      <h1 style={{fontSize:'48px', fontWeight:'900', textAlign:'center', margin:'20px 0'}}>
+        GABBOSS<span style={{color:'#FFD700'}}>.AI</span>
+      </h1>
+      
+      {step === 1 && (
+        <div style={{maxWidth:'700px', margin:'0 auto'}}>
+          <h2>1. YOUR STORY (Any universe)</h2>
+          <textarea value={story} onChange={e=>setStory(e.target.value)} placeholder="Ex: Me as superhero fighting dragons in cyberpunk NYC with my dog..." style={{width:'100%', height:'150px', background:'#111', color:'#fff', border:'1px solid #333', padding:'15px', borderRadius:'12px', margin:'15px 0'}} />
+          <button onClick={()=>setStep(2)} disabled={!story} style={{background:'#FFD700', color:'#000', padding:'15px 30px', borderRadius:'30px', fontWeight:'800', border:'none', cursor:'pointer', width:'100%'}}>NEXT →</button>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div style={{maxWidth:'700px', margin:'0 auto'}}>
+          <h2>2. ADD ANYBODY (real people, fictional, yourself, animals)</h2>
+          <div style={{display:'flex', gap:'10px', margin:'15px 0'}}>
+            <input value={charInput} onChange={e=>setCharInput(e.target.value)} placeholder="Ex: Elon Musk, Goku, my cat Whiskers..." style={{flex:1, background:'#111', color:'#fff', border:'1px solid #333', padding:'15px', borderRadius:'12px'}} />
+            <button onClick={addCharacter} style={{background:'#fff', color:'#000', padding:'15px 25px', borderRadius:'12px', fontWeight:'800', border:'none', cursor:'pointer'}}>+ ADD</button>
+          </div>
+          <div>{characters.map((c,i)=><span key={i} style={{background:'#FFD700', color:'#000', padding:'8px 15px', borderRadius:'20px', margin:'5px', display:'inline-block'}}>{c}</span>)}</div>
+          <button onClick={()=>setStep(3)} style={{background:'#FFD700', color:'#000', padding:'15px 30px', borderRadius:'30px', fontWeight:'800', border:'none', cursor:'pointer', width:'100%', marginTop:'20px'}}>NEXT →</button>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div style={{maxWidth:'700px', margin:'0 auto'}}>
+          <h2>3. DURATION</h2>
+          {[30,60,120,180].map(d=>(
+            <button key={d} onClick={()=>setDuration(d)} style={{background:duration===d?'#FFD700':'#111', color:duration===d?'#000':'#fff', padding:'15px 25px', borderRadius:'12px', border:'1px solid #333', margin:'5px', cursor:'pointer'}}>{d<60?`${d}s`:`${d/60}min`}</button>
+          ))}
+          <button onClick={()=>setStep(4)} style={{background:'#FFD700', color:'#000', padding:'15px 30px', borderRadius:'30px', fontWeight:'800', border:'none', cursor:'pointer', width:'100%', marginTop:'20px'}}>NEXT →</button>
+        </div>
+      )}
+
+      {step === 4 && (
+        <div style={{maxWidth:'700px', margin:'0 auto'}}>
+          <h2>4. STYLE</h2>
+          {['realistic','cinematic','cartoon'].map(s=>(
+            <button key={s} onClick={()=>setStyle(s)} style={{background:style===s?'#FFD700':'#111', color:style===s?'#000':'#fff', padding:'15px 25px', borderRadius:'12px', border:'1px solid #333', margin:'5px', cursor:'pointer', textTransform:'uppercase'}}>{s}</button>
+          ))}
+          <button onClick={generateReal} style={{background:'#FFD700', color:'#000', padding:'20px 30px', borderRadius:'30px', fontWeight:'900', border:'none', cursor:'pointer', width:'100%', marginTop:'20px', fontSize:'18px'}}>🎬 GENERATE REAL FILM WITH KIE VEO3.1</button>
+        </div>
+      )}
+
+      {generating && (
+        <div style={{maxWidth:'700px', margin:'50px auto', textAlign:'center'}}>
+          <h2>Generating {progress}%</h2>
+          <div style={{background:'#111', height:'10px', borderRadius:'10px', margin:'20px 0'}}><div style={{background:'#FFD700', height:'100%', width:`${progress}%`, borderRadius:'10px', transition:'width 0.5s'}}></div></div>
+          <p>Calling veo3.1 with voice... this takes 60-90 seconds</p>
+          {error && <p style={{color:'#ff4444'}}>{error}</p>}
+        </div>
+      )}
+
+      {step === 6 && (
+        <div style={{maxWidth:'800px', margin:'0 auto', textAlign:'center'}}>
+          <h2 style={{color:'#FFD700'}}>FILM READY 🔥</h2>
+          {videos.length > 0 ? videos.map((v,i)=>(
+            v.startsWith('http') ? <video key={i} src={v} controls style={{width:'100%', borderRadius:'16px', margin:'20px 0'}} /> : <pre style={{background:'#111', padding:'20px', borderRadius:'12px', textAlign:'left', overflow:'auto'}}>{v}</pre>
+          )) : <p>No video URL returned — check Vercel logs</p>}
+          {error && <p style={{color:'#ff4444'}}>{error}</p>}
+          <button onClick={()=>{setStep(1); setStory(''); setCharacters([]); setVideos([]);}} style={{background:'#fff', color:'#000', padding:'15px 30px', borderRadius:'30px', fontWeight:'800', border:'none', cursor:'pointer', marginTop:'20px'}}>MAKE ANOTHER FILM →</button>
+        </div>
+      )}
+    </div>
+  );
 }
