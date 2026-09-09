@@ -1,9 +1,19 @@
+// api/check.js - Poll veo3.1 task
 export default async function handler(req, res) {
   const { taskId } = req.query;
-  const apiKey = process.env.RUNWAY_API_KEY;
-  const r = await fetch(`https://api.dev.runwayml.com/v1/tasks/${taskId}`, {
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'X-Runway-Version': '2024-11-06' }
-  });
-  const data = await r.json();
-  return res.json(data);
+  if (!taskId) return res.status(400).json({ error: 'Missing taskId' });
+  const KIE_API_KEY = process.env.KIE_API_KEY;
+  try {
+    const r = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
+      headers: { 'Authorization': `Bearer ${KIE_API_KEY}` }
+    });
+    const data = await r.json();
+    const state = data.data?.state;
+    if (state === 'success') {
+      const videoUrl = JSON.parse(data.data.resultJson).resultUrls?.[0];
+      return res.status(200).json({ status: 'done', videoUrl });
+    }
+    if (state === 'fail') return res.status(200).json({ status: 'failed' });
+    return res.status(200).json({ status: 'generating' });
+  } catch (e) { return res.status(500).json({ error: e.message }); }
 }
