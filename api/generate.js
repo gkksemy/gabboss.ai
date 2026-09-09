@@ -1,20 +1,15 @@
 export default async function handler(req, res) {
   if (req.method!== 'POST') return res.status(405).json({ error: 'POST only' });
-
   const { prompt } = req.body;
   const apiKey = process.env.RUNWAY_API_KEY;
 
   if (!apiKey) {
-    return res.status(200).json({
-      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-      demo: true,
-      message: "Add RUNWAY_API_KEY in Vercel settings"
-    });
+    return res.status(200).json({ videoUrl: null, error: "No RUNWAY_API_KEY in Vercel env vars. Add it in Settings." });
   }
 
   try {
-    // Runway Gen-3 Turbo - Text to Video
-    const response = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
+    // Start task
+    const startRes = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -22,38 +17,41 @@ export default async function handler(req, res) {
         'X-Runway-Version': '2024-11-06'
       },
       body: JSON.stringify({
-        promptText: prompt || "A talking red apple with gold chain and sunglasses driving a black Mercedes G-Wagon G63 at night in Istanbul, cinematic, gangster vibe",
+        promptText: prompt,
         model: 'gen3a_turbo',
         duration: 5,
         ratio: '16:9'
       })
     });
 
-    const data = await response.json();
+    const startData = await startRes.json();
+    if (!startRes.ok) return res.status(200).json({ error: startData.message || "Runway error", raw: startData });
 
-    if (!response.ok) {
-      console.error(data);
-      return res.status(200).json({
-        videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-        error: data.message || 'Runway error - using demo',
-        raw: data
+    let taskId = startData.id;
+    let videoUrl = null;
+    let tries = 0;
+
+    // Poll for 90 seconds
+    while (tries < 30 &&!videoUrl) {
+      await new Promise(r => setTimeout(r, 3000));
+      const checkRes = await fetch(`https://api.dev.runwayml.com/v1/tasks/${taskId}`, {
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'X-Runway-Version': '2024-11-06' }
       });
+      const checkData = await checkRes.json();
+      if (checkData.status === 'SUCCEEDED') {
+        videoUrl = checkData.output?.[0];
+        break;
+      }
+      if (checkData.status === 'FAILED') {
+        return res.status(200).json({ error: "Runway failed: " + (checkData.failure || "unknown"), raw: checkData });
+      }
+      tries++;
     }
 
-    // Runway returns task ID, we need to poll
-    // For now return task id, frontend will poll
-    return res.status(200).json({
-      taskId: data.id,
-      videoUrl: data.output? data.output[0] : null,
-      status: 'generating',
-      message: 'GABBOSS is rendering your G-Wagon... ~90 sec'
-    });
+    if (videoUrl) return res.status(200).json({ videoUrl });
+    else return res.status(200).json({ error: "Still generating - Runway took >90 sec, check runwayml.com dashboard", taskId });
 
   } catch (err) {
-    console.error(err);
-    return res.status(200).json({
-      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-      error: err.message
-    });
+    return res.status(200).json({ error: err.message });
   }
 }
