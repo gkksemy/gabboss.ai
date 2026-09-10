@@ -1,13 +1,14 @@
-import fetch from 'node-fetch';
-
 export default async function handler(req, res) {
-  if (req.method!== 'POST') return res.status(405).json({error:'POST only'});
+  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-  const { prompt, duration } = req.body;
-  const apiKey = process.env.KIE_API_KEY || process.env.VITE_KIE_API_KEY;
+  const { prompt } = req.body;
+  const apiKey = process.env.KIE_API_KEY;
+
+  if (!apiKey) {
+    return res.status(500).json({ error: 'KIE_API_KEY missing in Vercel env vars' });
+  }
 
   try {
-    // 1. START GENERATION
     const genRes = await fetch('https://api.kie.ai/api/v1/veo/generate', {
       method: 'POST',
       headers: {
@@ -15,7 +16,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'veo3_fast', // or 'veo3' for highest quality
+        model: 'veo3_fast',
         prompt: prompt,
         generationType: 'TEXT_2_VIDEO',
         aspectRatio: '16:9'
@@ -26,41 +27,12 @@ export default async function handler(req, res) {
     console.log('KIE generate:', genData);
 
     if (!genData.data?.taskId) {
-      return res.status(500).json(genData);
+      return res.status(500).json({ error: 'Failed to start', details: genData });
     }
 
-    const taskId = genData.data.taskId;
-
-    // 2. POLL FOR RESULT (veo takes 1-3 mins)
-    let videoUrl = null;
-    for (let i = 0; i < 30; i++) {
-      await new Promise(r => setTimeout(r, 10000)); // wait 10s
-
-      const statusRes = await fetch(`https://api.kie.ai/api/v1/veo/record-info?taskId=${taskId}`, {
-        headers: { 'Authorization': `Bearer ${apiKey}` }
-      });
-
-      const statusData = await statusRes.json();
-      console.log('KIE status:', statusData);
-
-      if (statusData.data?.state === 'success' && statusData.data?.resultJson) {
-        const result = JSON.parse(statusData.data.resultJson);
-        videoUrl = result.resultUrls?.[0] || result.resultUrl;
-        break;
-      }
-      if (statusData.data?.state === 'fail') {
-        return res.status(500).json({ error: 'Generation failed', details: statusData });
-      }
-    }
-
-    if (videoUrl) {
-      res.json({ video_url: videoUrl, taskId });
-    } else {
-      res.json({ message: 'Still generating, check later', taskId });
-    }
-
+    return res.status(200).json({ taskId: genData.data.taskId });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message });
   }
 }
