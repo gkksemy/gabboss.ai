@@ -1,21 +1,39 @@
 export default async function handler(req, res) {
   const { taskId } = req.query;
-  const apiKey = process.env.KIE_API_KEY;
+  if (!taskId) return res.status(400).json({ error: 'Missing taskId' });
 
-  if (!taskId) return res.status(400).json({ error: 'taskId required' });
+  try {
+    const r = await fetch(`https://api.kie.ai/api/v1/veo/record-info?taskId=${taskId}`, {
+      headers: { 'Authorization': `Bearer ${process.env.KIE_API_KEY}` }
+    });
+    const data = await r.json();
 
-  const statusRes = await fetch(`https://api.kie.ai/api/v1/veo/record-info?taskId=${taskId}`, {
-    headers: { 'Authorization': `Bearer ${apiKey}` }
-  });
+    console.log('KIE raw:', JSON.stringify(data).slice(0, 500)); // check Vercel logs
 
-  const statusData = await statusRes.json();
-  console.log('KIE status:', statusData);
+    let videoUrl = null;
+    let state = data.data?.state || 'generating';
 
-  if (statusData.data?.state === 'success' && statusData.data?.resultJson) {
-    const result = JSON.parse(statusData.data.resultJson);
-    const videoUrl = result.resultUrls?.[0] || result.resultUrl;
-    return res.json({ state: 'success', video_url: videoUrl, raw: statusData });
+    if (data.data?.resultJson) {
+      try {
+        const parsed = JSON.parse(data.data.resultJson);
+        videoUrl = parsed.resultUrls?.[0] || parsed.resultUrl || null;
+        if (videoUrl) state = 'success';
+      } catch {}
+    }
+
+    // successFlag 1 = done, 0 = still going, 2/3 = failed
+    if (data.data?.successFlag === 1 && videoUrl) state = 'success';
+    if (data.data?.successFlag === 2 || data.data?.successFlag === 3) state = 'fail';
+
+    return res.status(200).json({
+      state,
+      video_url: videoUrl,
+      successFlag: data.data?.successFlag,
+      rawState: data.data?.state,
+      taskId
+    });
+
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
   }
-
-  return res.json(statusData); // still generating or failed
 }
