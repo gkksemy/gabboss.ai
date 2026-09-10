@@ -1,38 +1,27 @@
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
-
-  const { prompt } = req.body;
-  const apiKey = process.env.KIE_API_KEY;
-
-  if (!apiKey) {
-    return res.status(500).json({ error: 'KIE_API_KEY missing in Vercel env vars' });
-  }
-
+  if (req.method !== 'POST') return res.status(405).end();
+  const { prompt, duration } = req.body;
+  
   try {
-    const genRes = await fetch('https://api.kie.ai/api/v1/veo/generate', {
+    const r = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+        'Authorization': `Bearer ${process.env.RUNWAY_API_KEY}`,
+        'Content-Type': 'application/json',
+        'X-Runway-Version': '2024-11-06'
       },
       body: JSON.stringify({
-        model: 'veo3_fast',
-        prompt: prompt,
-        generationType: 'TEXT_2_VIDEO',
-        aspectRatio: '16:9'
+        promptText: prompt,
+        model: 'gen4_turbo',
+        ratio: '16:9',
+        duration: Math.min(duration || 5, 10) // Runway max 10s per clip, we will extend later
       })
     });
-
-    const genData = await genRes.json();
-    console.log('KIE generate:', genData);
-
-    if (!genData.data?.taskId) {
-      return res.status(500).json({ error: 'Failed to start', details: genData });
-    }
-
-    return res.status(200).json({ taskId: genData.data.taskId });
+    const data = await r.json();
+    if (!r.ok) return res.status(r.status).json(data);
+    // data.id is taskId
+    return res.status(200).json({ taskId: data.id });
   } catch (e) {
-    console.error(e);
     return res.status(500).json({ error: e.message });
   }
 }
