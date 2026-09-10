@@ -26,55 +26,30 @@ export default function App() {
     setError('');
     setVideos([]);
     setCurrentTaskId('');
-
     try {
-      const fullPrompt = `${style} style, cinematic 4k: ${story}. Starring: ${characters.join(', ')}. ${style === 'realistic' ? 'photorealistic, 8k detail' : style === 'cinematic' ? 'anamorphic lens, dramatic lighting' : 'pixar style animation'} -- duration ${duration}s with voice and sound`;
-
+      const fullPrompt = style + ' style cinematic 4k: ' + story + '. Starring: ' + characters.join(', ') + '. Duration ' + duration + 's with voice and sound';
       setProgress(20);
-
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ prompt: fullPrompt, duration })
       });
-
-      if(!res.ok) {
-        const err = await res.text();
-        throw new Error(err || 'Failed to start generation');
-      }
-
+      if(!res.ok) { const err = await res.text(); throw new Error(err || 'Failed to start'); }
       const startData = await res.json();
       const taskId = startData.taskId || startData.task_id;
-      
-      if(!taskId) {
-        if(startData.video_url || startData.url) {
-          setVideos([startData.video_url || startData.url]);
-          setProgress(100);
-          setStep(6);
-          setGenerating(false);
-          return;
-        }
-        throw new Error('No taskId: ' + JSON.stringify(startData).slice(0,300));
-      }
-
+      if(!taskId) throw new Error('No taskId: ' + JSON.stringify(startData).slice(0,200));
       setCurrentTaskId(taskId);
       setProgress(30);
-      setError(`Rendering started... takes 2-4 mins for ${duration}s video. Task: ${taskId.slice(0,8)}`);
-
+      setError('Rendering started... 2-4 mins. Task: ' + taskId.slice(0,8));
       let attempts = 0;
-      const maxAttempts = 80; // 20 mins max
-      
       const poll = setInterval(async () => {
         attempts++;
-        setProgress(prev => Math.min(30 + attempts * 0.9, 95));
-
+        setProgress(p => Math.min(30 + attempts * 0.9, 95));
         try {
-          const statusRes = await fetch(`/api/status?taskId=${taskId}`);
+          const statusRes = await fetch('/api/status?taskId=' + taskId);
           const statusData = await statusRes.json();
-
-          console.log(`[${attempts}] state=${statusData.state} flag=${statusData.successFlag}`);
-
-          if (statusData.video_url && (statusData.state === 'success' || statusData.successFlag === 1)) {
+          console.log('['+attempts+'] ' + statusData.state + ' flag=' + statusData.successFlag);
+          if (statusData.video_url) {
             clearInterval(poll);
             setVideos([statusData.video_url]);
             setProgress(100);
@@ -83,40 +58,70 @@ export default function App() {
             setGenerating(false);
             return;
           }
-
           if (statusData.state === 'fail' || statusData.successFlag === 2 || statusData.successFlag === 3) {
             clearInterval(poll);
-            const reason = statusData.rawState || 'Content policy or credits. Try removing real person names like Elon Musk.';
-            setError(`Generation failed (${reason}). Try a simpler prompt without real celebrities. TaskId: ${taskId}`);
+            setError('Failed - try without real celebrity names. TaskId: ' + taskId);
             setGenerating(false);
             return;
           }
-
-        } catch (pollErr) {
-          console.error('poll error', pollErr);
-        }
-
-        if (attempts >= maxAttempts) {
-          clearInterval(poll);
-          setError(`Still processing after 20 mins. Your video is rendering on KIE servers. TaskId: ${taskId} - check kie.ai dashboard.`);
-          setGenerating(false);
-        }
-      }, 15000); // every 15s
-
-    } catch(e) {
-      setError(e.message);
-      console.error(e);
-      setGenerating(false);
-    }
+        } catch(e) { console.error(e); }
+        if (attempts >= 80) { clearInterval(poll); setError('Taking >20 mins. Check kie.ai dashboard TaskId: ' + taskId); setGenerating(false); }
+      }, 15000);
+    } catch(e) { setError(e.message); setGenerating(false); }
   };
 
   return (
-    <div style={{background:'#000', color:'#fff', minHeight:'100vh', fontFamily:'Syne, sans-serif', padding:'20px'}}>
-      <h1 style={{fontSize:'48px', fontWeight:'900', textAlign:'center', margin:'20px 0'}}>
-        GABBOSS<span style={{color:'#FFD700'}}>.AI</span>
-      </h1>
-      
+    <div style={{background:'#000', color:'#fff', minHeight:'100vh', padding:'20px'}}>
+      <h1 style={{fontSize:'48px', fontWeight:'900', textAlign:'center', margin:'20px 0'}}>GABBOSS<span style={{color:'#FFD700'}}>.AI</span></h1>
       {step === 1 && (
         <div style={{maxWidth:'700px', margin:'0 auto'}}>
-          <h2>1. YOUR STORY (Any universe)</h2>
-          <textarea value={story} onChange={e=>setStory(e.target.value)} placeholder="Ex: A cyberpunk cat superhero saving
+          <h2>1. YOUR STORY</h2>
+          <textarea value={story} onChange={e=>setStory(e.target.value)} placeholder="A cyberpunk cat superhero saving NYC" style={{width:'100%', height:'150px', background:'#111', color:'#fff', border:'1px solid #333', padding:'15px', borderRadius:'12px', margin:'15px 0'}} />
+          <button onClick={()=>setStep(2)} disabled={!story} style={{background:'#FFD700', color:'#000', padding:'15px 30px', borderRadius:'30px', fontWeight:'800', border:'none', width:'100%'}}>NEXT</button>
+        </div>
+      )}
+      {step === 2 && (
+        <div style={{maxWidth:'700px', margin:'0 auto'}}>
+          <h2>2. ADD ANYBODY</h2>
+          <div style={{display:'flex', gap:'10px', margin:'15px 0'}}>
+            <input value={charInput} onChange={e=>setCharInput(e.target.value)} placeholder="my dog, robot..." style={{flex:1, background:'#111', color:'#fff', border:'1px solid #333', padding:'15px', borderRadius:'12px'}} />
+            <button onClick={addCharacter} style={{background:'#fff', color:'#000', padding:'15px 25px', borderRadius:'12px', fontWeight:'800', border:'none'}}>+ ADD</button>
+          </div>
+          <div>{characters.map((c,i)=><span key={i} style={{background:'#FFD700', color:'#000', padding:'8px 15px', borderRadius:'20px', margin:'5px', display:'inline-block'}}>{c}</span>)}</div>
+          <button onClick={()=>setStep(3)} style={{background:'#FFD700', color:'#000', padding:'15px 30px', borderRadius:'30px', fontWeight:'800', border:'none', width:'100%', marginTop:'20px'}}>NEXT</button>
+        </div>
+      )}
+      {step === 3 && (
+        <div style={{maxWidth:'700px', margin:'0 auto'}}>
+          <h2>3. DURATION</h2>
+          <div>{[30,60,120,180].map(d=>(<button key={d} onClick={()=>setDuration(d)} style={{background:duration===d?'#FFD700':'#111', color:duration===d?'#000':'#fff', padding:'15px 25px', borderRadius:'12px', border:'1px solid #333', margin:'5px'}}>{d<60?d+'s':d/60+'min'}</button>))}</div>
+          <button onClick={()=>setStep(4)} style={{background:'#FFD700', color:'#000', padding:'15px 30px', borderRadius:'30px', fontWeight:'800', border:'none', width:'100%', marginTop:'20px'}}>NEXT</button>
+        </div>
+      )}
+      {step === 4 && (
+        <div style={{maxWidth:'700px', margin:'0 auto'}}>
+          <h2>4. STYLE</h2>
+          <div>{['realistic','cinematic','cartoon'].map(s=>(<button key={s} onClick={()=>setStyle(s)} style={{background:style===s?'#FFD700':'#111', color:style===s?'#000':'#fff', padding:'15px 25px', borderRadius:'12px', border:'1px solid #333', margin:'5px', textTransform:'uppercase'}}>{s}</button>))}</div>
+          <button onClick={generateReal} style={{background:'#FFD700', color:'#000', padding:'20px 30px', borderRadius:'30px', fontWeight:'900', border:'none', width:'100%', marginTop:'20px', fontSize:'18px'}}>GENERATE FILM</button>
+          {error && <p style={{color:'#FFD700', marginTop:'20px'}}>{error}</p>}
+        </div>
+      )}
+      {generating && (
+        <div style={{maxWidth:'700px', margin:'50px auto', textAlign:'center'}}>
+          <h2>Rendering {Math.round(progress)}%</h2>
+          <div style={{background:'#111', height:'10px', borderRadius:'10px', margin:'20px 0'}}><div style={{background:'#FFD700', height:'100%', width:progress+'%', borderRadius:'10px'}}></div></div>
+          <p>VEO 3.1 takes 2-4 mins. Don't close.</p>
+          <p style={{fontSize:'11px', color:'#555'}}>{currentTaskId}</p>
+          <p style={{color:'#FFD700'}}>{error}</p>
+        </div>
+      )}
+      {step === 6 && (
+        <div style={{maxWidth:'800px', margin:'0 auto', textAlign:'center'}}>
+          <h2 style={{color:'#FFD700'}}>FILM READY</h2>
+          {videos.map((v,i)=>(<video key={i} src={v} controls autoPlay style={{width:'100%', borderRadius:'16px', margin:'20px 0'}} />))}
+          <button onClick={()=>{setStep(1); setStory(''); setCharacters([]); setVideos([]); setError(''); setCurrentTaskId(''); setProgress(0);}} style={{background:'#fff', color:'#000', padding:'15px 30px', borderRadius:'30px', fontWeight:'800', border:'none', marginTop:'20px'}}>MAKE ANOTHER</button>
+        </div>
+      )}
+    </div>
+  );
+}
