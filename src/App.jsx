@@ -1,10 +1,9 @@
-```jsx
 import { useState } from "react";
 
 const DEFAULT_STORY =
   "family thanksgiving dinner in nashville Tn";
 
-export default function App() {
+function App() {
   const [story, setStory] = useState(DEFAULT_STORY);
   const [characters, setCharacters] = useState("");
   const [style, setStyle] = useState("cinematic");
@@ -33,33 +32,38 @@ export default function App() {
       const response = await fetch("/api/bible", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           story: story.trim(),
           characters: characters.trim(),
-          style,
-        }),
+          style: style
+        })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.error || "Failed to build Character & World Bible."
+          data.error ||
+            "Failed to build Character & World Bible."
         );
       }
 
       if (!data.success) {
         throw new Error(
-          data.error || "Bible generation failed."
+          data.error ||
+            "Bible generation failed."
         );
       }
 
       setCharacterBible(data.characterBible);
       setWorldBible(data.worldBible);
     } catch (err) {
-      setError(err.message || "Something went wrong.");
+      setError(
+        err.message ||
+          "Something went wrong."
+      );
     } finally {
       setLoadingBible(false);
     }
@@ -81,34 +85,39 @@ export default function App() {
       const response = await fetch("/api/film-plan", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           story: story.trim(),
           duration: 300,
           clipLength: Number(clipLength),
-          characterBible,
-          worldBible,
-        }),
+          characterBible: characterBible,
+          worldBible: worldBible
+        })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.error || "Failed to build the film plan."
+          data.error ||
+            "Failed to build the film plan."
         );
       }
 
       if (!data.success) {
         throw new Error(
-          data.error || "Film plan generation failed."
+          data.error ||
+            "Film plan generation failed."
         );
       }
 
       setFilmPlan(data.filmPlan);
     } catch (err) {
-      setError(err.message || "Something went wrong.");
+      setError(
+        err.message ||
+          "Something went wrong."
+      );
     } finally {
       setLoadingPlan(false);
     }
@@ -130,20 +139,19 @@ export default function App() {
         color: "#ffffff",
         fontFamily:
           "Inter, Arial, Helvetica, sans-serif",
-        padding: "40px 20px 80px",
+        padding: "40px 20px 80px"
       }}
     >
       <div
         style={{
           maxWidth: "1100px",
-          margin: "0 auto",
+          margin: "0 auto"
         }}
       >
-        {/* HEADER */}
         <header
           style={{
             marginBottom: "40px",
-            textAlign: "center",
+            textAlign: "center"
           }}
         >
           <div
@@ -156,7 +164,7 @@ export default function App() {
               color: "#aaa",
               fontSize: "12px",
               letterSpacing: "1px",
-              marginBottom: "18px",
+              marginBottom: "18px"
             }}
           >
             GABBOSS.AI FILM
@@ -164,11 +172,12 @@ export default function App() {
 
           <h1
             style={{
-              fontSize: "clamp(36px, 6vw, 64px)",
+              fontSize:
+                "clamp(36px, 6vw, 64px)",
               lineHeight: 1,
               margin: "0 0 18px",
               fontWeight: 800,
-              letterSpacing: "-2px",
+              letterSpacing: "-2px"
             }}
           >
             AI Film Studio
@@ -180,7 +189,7 @@ export default function App() {
               maxWidth: "700px",
               margin: "0 auto",
               fontSize: "17px",
-              lineHeight: 1.6,
+              lineHeight: 1.6
             }}
           >
             Turn a story idea into a structured
@@ -190,7 +199,6 @@ export default function App() {
           </p>
         </header>
 
-        {/* ZERO CREDIT NOTICE */}
         <div
           style={{
             background:
@@ -198,13 +206,13 @@ export default function App() {
             border: "1px solid #333",
             borderRadius: "16px",
             padding: "18px 20px",
-            marginBottom: "28px",
+            marginBottom: "28px"
           }}
         >
           <div
             style={{
               fontWeight: 700,
-              marginBottom: "6px",
+              marginBottom: "6px"
             }}
           >
             Zero-credit testing mode
@@ -214,7 +222,7 @@ export default function App() {
             style={{
               color: "#aaa",
               lineHeight: 1.5,
-              fontSize: "14px",
+              fontSize: "14px"
             }}
           >
             This version does not call Runway.
@@ -224,20 +232,19 @@ export default function App() {
           </div>
         </div>
 
-        {/* STORY INPUT */}
         <section
           style={{
             background: "#101010",
             border: "1px solid #292929",
             borderRadius: "20px",
             padding: "26px",
-            marginBottom: "24px",
+            marginBottom: "24px"
           }}
         >
           <h2
             style={{
               margin: "0 0 8px",
-              fontSize: "24px",
+              fontSize: "24px"
             }}
           >
             1. Create Your Film
@@ -247,7 +254,7 @@ export default function App() {
             style={{
               margin: "0 0 22px",
               color: "#999",
-              lineHeight: 1.5,
+              lineHeight: 1.5
             }}
           >
             Describe the story you want to turn into
@@ -259,7 +266,7 @@ export default function App() {
               display: "block",
               marginBottom: "8px",
               fontWeight: 700,
-              fontSize: "14px",
+              fontSize: "14px"
             }}
           >
             Story idea
@@ -267,7 +274,9 @@ export default function App() {
 
           <textarea
             value={story}
-            onChange={(e) => setStory(e.target.value)}
+            onChange={function (e) {
+              setStory(e.target.value);
+            }}
             placeholder="Describe your film..."
             rows={7}
             style={{
@@ -282,7 +291,7 @@ export default function App() {
               fontSize: "15px",
               lineHeight: 1.6,
               outline: "none",
-              marginBottom: "20px",
+              marginBottom: "20px"
             }}
           />
 
@@ -291,7 +300,7 @@ export default function App() {
               display: "block",
               marginBottom: "8px",
               fontWeight: 700,
-              fontSize: "14px",
+              fontSize: "14px"
             }}
           >
             Characters
@@ -299,9 +308,9 @@ export default function App() {
 
           <input
             value={characters}
-            onChange={(e) =>
-              setCharacters(e.target.value)
-            }
+            onChange={function (e) {
+              setCharacters(e.target.value);
+            }}
             placeholder="Optional: John, Sarah, Michael..."
             style={{
               width: "100%",
@@ -313,7 +322,7 @@ export default function App() {
               padding: "14px 16px",
               fontSize: "15px",
               outline: "none",
-              marginBottom: "20px",
+              marginBottom: "20px"
             }}
           />
 
@@ -323,7 +332,7 @@ export default function App() {
               gridTemplateColumns:
                 "repeat(auto-fit, minmax(220px, 1fr))",
               gap: "16px",
-              marginBottom: "22px",
+              marginBottom: "22px"
             }}
           >
             <div>
@@ -332,7 +341,7 @@ export default function App() {
                   display: "block",
                   marginBottom: "8px",
                   fontWeight: 700,
-                  fontSize: "14px",
+                  fontSize: "14px"
                 }}
               >
                 Visual style
@@ -340,9 +349,9 @@ export default function App() {
 
               <select
                 value={style}
-                onChange={(e) =>
-                  setStyle(e.target.value)
-                }
+                onChange={function (e) {
+                  setStyle(e.target.value);
+                }}
                 style={{
                   width: "100%",
                   background: "#080808",
@@ -350,7 +359,7 @@ export default function App() {
                   border: "1px solid #333",
                   borderRadius: "12px",
                   padding: "14px",
-                  fontSize: "15px",
+                  fontSize: "15px"
                 }}
               >
                 <option value="cinematic">
@@ -371,7 +380,7 @@ export default function App() {
                   display: "block",
                   marginBottom: "8px",
                   fontWeight: 700,
-                  fontSize: "14px",
+                  fontSize: "14px"
                 }}
               >
                 Clip length
@@ -379,9 +388,11 @@ export default function App() {
 
               <select
                 value={clipLength}
-                onChange={(e) =>
-                  setClipLength(Number(e.target.value))
-                }
+                onChange={function (e) {
+                  setClipLength(
+                    Number(e.target.value)
+                  );
+                }}
                 style={{
                   width: "100%",
                   background: "#080808",
@@ -389,7 +400,7 @@ export default function App() {
                   border: "1px solid #333",
                   borderRadius: "12px",
                   padding: "14px",
-                  fontSize: "15px",
+                  fontSize: "15px"
                 }}
               >
                 <option value={10}>
@@ -406,7 +417,7 @@ export default function App() {
             style={{
               display: "flex",
               gap: "12px",
-              flexWrap: "wrap",
+              flexWrap: "wrap"
             }}
           >
             <button
@@ -425,7 +436,7 @@ export default function App() {
                 fontSize: "15px",
                 cursor: loadingBible
                   ? "not-allowed"
-                  : "pointer",
+                  : "pointer"
               }}
             >
               {loadingBible
@@ -444,7 +455,7 @@ export default function App() {
                 color: "#ccc",
                 fontWeight: 700,
                 fontSize: "15px",
-                cursor: "pointer",
+                cursor: "pointer"
               }}
             >
               Reset
@@ -452,7 +463,6 @@ export default function App() {
           </div>
         </section>
 
-        {/* ERROR */}
         {error && (
           <div
             style={{
@@ -462,14 +472,13 @@ export default function App() {
               borderRadius: "14px",
               padding: "16px",
               marginBottom: "24px",
-              lineHeight: 1.5,
+              lineHeight: 1.5
             }}
           >
             <strong>Error:</strong> {error}
           </div>
         )}
 
-        {/* CHARACTER BIBLE */}
         {characterBible && (
           <section
             style={{
@@ -477,7 +486,7 @@ export default function App() {
               border: "1px solid #292929",
               borderRadius: "20px",
               padding: "26px",
-              marginBottom: "24px",
+              marginBottom: "24px"
             }}
           >
             <div
@@ -487,7 +496,7 @@ export default function App() {
                 gap: "16px",
                 alignItems: "center",
                 flexWrap: "wrap",
-                marginBottom: "20px",
+                marginBottom: "20px"
               }}
             >
               <div>
@@ -496,7 +505,7 @@ export default function App() {
                     color: "#777",
                     fontSize: "12px",
                     letterSpacing: "1px",
-                    marginBottom: "6px",
+                    marginBottom: "6px"
                   }}
                 >
                   STEP 2
@@ -505,7 +514,7 @@ export default function App() {
                 <h2
                   style={{
                     margin: 0,
-                    fontSize: "24px",
+                    fontSize: "24px"
                   }}
                 >
                   Character Bible
@@ -520,7 +529,7 @@ export default function App() {
                   border: "1px solid #294329",
                   color: "#9be49b",
                   fontSize: "12px",
-                  fontWeight: 700,
+                  fontWeight: 700
                 }}
               >
                 READY
@@ -532,23 +541,27 @@ export default function App() {
                 display: "grid",
                 gridTemplateColumns:
                   "repeat(auto-fit, minmax(250px, 1fr))",
-                gap: "14px",
+                gap: "14px"
               }}
             >
               {Object.entries(characterBible).map(
-                ([key, value]) => (
-                  <BibleCard
-                    key={key}
-                    title={formatTitle(key)}
-                    value={value}
-                  />
-                )
+                function (entry) {
+                  const key = entry[0];
+                  const value = entry[1];
+
+                  return (
+                    <BibleCard
+                      key={key}
+                      title={formatTitle(key)}
+                      value={value}
+                    />
+                  );
+                }
               )}
             </div>
           </section>
         )}
 
-        {/* WORLD BIBLE */}
         {worldBible && (
           <section
             style={{
@@ -556,12 +569,12 @@ export default function App() {
               border: "1px solid #292929",
               borderRadius: "20px",
               padding: "26px",
-              marginBottom: "24px",
+              marginBottom: "24px"
             }}
           >
             <div
               style={{
-                marginBottom: "20px",
+                marginBottom: "20px"
               }}
             >
               <div
@@ -569,7 +582,7 @@ export default function App() {
                   color: "#777",
                   fontSize: "12px",
                   letterSpacing: "1px",
-                  marginBottom: "6px",
+                  marginBottom: "6px"
                 }}
               >
                 WORLD CONTINUITY
@@ -578,7 +591,7 @@ export default function App() {
               <h2
                 style={{
                   margin: 0,
-                  fontSize: "24px",
+                  fontSize: "24px"
                 }}
               >
                 World Bible
@@ -590,23 +603,27 @@ export default function App() {
                 display: "grid",
                 gridTemplateColumns:
                   "repeat(auto-fit, minmax(250px, 1fr))",
-                gap: "14px",
+                gap: "14px"
               }}
             >
               {Object.entries(worldBible).map(
-                ([key, value]) => (
-                  <BibleCard
-                    key={key}
-                    title={formatTitle(key)}
-                    value={value}
-                  />
-                )
+                function (entry) {
+                  const key = entry[0];
+                  const value = entry[1];
+
+                  return (
+                    <BibleCard
+                      key={key}
+                      title={formatTitle(key)}
+                      value={value}
+                    />
+                  );
+                }
               )}
             </div>
           </section>
         )}
 
-        {/* FILM PLAN */}
         {characterBible && worldBible && (
           <section
             style={{
@@ -614,12 +631,12 @@ export default function App() {
               border: "1px solid #292929",
               borderRadius: "20px",
               padding: "26px",
-              marginBottom: "24px",
+              marginBottom: "24px"
             }}
           >
             <div
               style={{
-                marginBottom: "20px",
+                marginBottom: "20px"
               }}
             >
               <div
@@ -627,7 +644,7 @@ export default function App() {
                   color: "#777",
                   fontSize: "12px",
                   letterSpacing: "1px",
-                  marginBottom: "6px",
+                  marginBottom: "6px"
                 }}
               >
                 STEP 3
@@ -636,7 +653,7 @@ export default function App() {
               <h2
                 style={{
                   margin: "0 0 8px",
-                  fontSize: "24px",
+                  fontSize: "24px"
                 }}
               >
                 Build 5-Minute Film Plan
@@ -646,7 +663,7 @@ export default function App() {
                 style={{
                   margin: 0,
                   color: "#999",
-                  lineHeight: 1.5,
+                  lineHeight: 1.5
                 }}
               >
                 This creates the complete scene
@@ -673,7 +690,7 @@ export default function App() {
                 cursor: loadingPlan
                   ? "not-allowed"
                   : "pointer",
-                marginBottom: "24px",
+                marginBottom: "24px"
               }}
             >
               {loadingPlan
@@ -682,12 +699,13 @@ export default function App() {
             </button>
 
             {filmPlan && (
-              <FilmPlanDisplay filmPlan={filmPlan} />
+              <FilmPlanDisplay
+                filmPlan={filmPlan}
+              />
             )}
           </section>
         )}
 
-        {/* GENERATION STATUS */}
         {filmPlan && (
           <section
             style={{
@@ -695,7 +713,7 @@ export default function App() {
                 "linear-gradient(135deg, #111, #191919)",
               border: "1px solid #333",
               borderRadius: "20px",
-              padding: "26px",
+              padding: "26px"
             }}
           >
             <div
@@ -703,7 +721,7 @@ export default function App() {
                 color: "#777",
                 fontSize: "12px",
                 letterSpacing: "1px",
-                marginBottom: "8px",
+                marginBottom: "8px"
               }}
             >
               STEP 4
@@ -712,7 +730,7 @@ export default function App() {
             <h2
               style={{
                 margin: "0 0 10px",
-                fontSize: "24px",
+                fontSize: "24px"
               }}
             >
               Video Generation
@@ -722,7 +740,7 @@ export default function App() {
               style={{
                 color: "#999",
                 lineHeight: 1.6,
-                marginBottom: "20px",
+                marginBottom: "20px"
               }}
             >
               The film plan is ready for video
@@ -743,7 +761,7 @@ export default function App() {
                 color: "#555",
                 fontWeight: 800,
                 fontSize: "15px",
-                cursor: "not-allowed",
+                cursor: "not-allowed"
               }}
             >
               Runway Generation — Waiting for Credits
@@ -754,7 +772,7 @@ export default function App() {
                 marginTop: "14px",
                 textAlign: "center",
                 color: "#666",
-                fontSize: "13px",
+                fontSize: "13px"
               }}
             >
               Runway API calls: 0
@@ -768,14 +786,14 @@ export default function App() {
   );
 }
 
-function BibleCard({ title, value }) {
+function BibleCard(props) {
   return (
     <div
       style={{
         background: "#080808",
         border: "1px solid #242424",
         borderRadius: "14px",
-        padding: "16px",
+        padding: "16px"
       }}
     >
       <div
@@ -784,10 +802,10 @@ function BibleCard({ title, value }) {
           fontSize: "12px",
           textTransform: "uppercase",
           letterSpacing: "0.7px",
-          marginBottom: "8px",
+          marginBottom: "8px"
         }}
       >
-        {title}
+        {props.title}
       </div>
 
       <div
@@ -795,16 +813,18 @@ function BibleCard({ title, value }) {
           color: "#ddd",
           lineHeight: 1.6,
           fontSize: "14px",
-          whiteSpace: "pre-wrap",
+          whiteSpace: "pre-wrap"
         }}
       >
-        {renderValue(value)}
+        {renderValue(props.value)}
       </div>
     </div>
   );
 }
 
-function FilmPlanDisplay({ filmPlan }) {
+function FilmPlanDisplay(props) {
+  const filmPlan = props.filmPlan;
+
   const scenes = Array.isArray(filmPlan.scenes)
     ? filmPlan.scenes
     : [];
@@ -817,16 +837,17 @@ function FilmPlanDisplay({ filmPlan }) {
           border: "1px solid #292929",
           borderRadius: "16px",
           padding: "20px",
-          marginBottom: "24px",
+          marginBottom: "24px"
         }}
       >
         <h3
           style={{
             margin: "0 0 12px",
-            fontSize: "22px",
+            fontSize: "22px"
           }}
         >
-          {filmPlan.title || "5-Minute Film Plan"}
+          {filmPlan.title ||
+            "5-Minute Film Plan"}
         </h3>
 
         <div
@@ -834,22 +855,33 @@ function FilmPlanDisplay({ filmPlan }) {
             display: "grid",
             gridTemplateColumns:
               "repeat(auto-fit, minmax(150px, 1fr))",
-            gap: "12px",
+            gap: "12px"
           }}
         >
           <InfoBox
             label="Duration"
-            value={`${filmPlan.duration || 300} seconds`}
+            value={
+              String(
+                filmPlan.duration || 300
+              ) + " seconds"
+            }
           />
 
           <InfoBox
             label="Clip Length"
-            value={`${filmPlan.sceneDuration || 10} seconds`}
+            value={
+              String(
+                filmPlan.sceneDuration || 10
+              ) + " seconds"
+            }
           />
 
           <InfoBox
             label="Scenes"
-            value={`${filmPlan.sceneCount || scenes.length}`}
+            value={String(
+              filmPlan.sceneCount ||
+                scenes.length
+            )}
           />
 
           <InfoBox
@@ -866,13 +898,13 @@ function FilmPlanDisplay({ filmPlan }) {
             border: "1px solid #292929",
             borderRadius: "16px",
             padding: "20px",
-            marginBottom: "24px",
+            marginBottom: "24px"
           }}
         >
           <h3
             style={{
               margin: "0 0 14px",
-              fontSize: "19px",
+              fontSize: "19px"
             }}
           >
             Story Structure
@@ -881,10 +913,12 @@ function FilmPlanDisplay({ filmPlan }) {
           <div
             style={{
               color: "#aaa",
-              lineHeight: 1.6,
+              lineHeight: 1.6
             }}
           >
-            {renderValue(filmPlan.storyStructure)}
+            {renderValue(
+              filmPlan.storyStructure
+            )}
           </div>
         </div>
       )}
@@ -892,7 +926,7 @@ function FilmPlanDisplay({ filmPlan }) {
       <h3
         style={{
           margin: "0 0 14px",
-          fontSize: "21px",
+          fontSize: "21px"
         }}
       >
         Scenes
@@ -901,16 +935,18 @@ function FilmPlanDisplay({ filmPlan }) {
       <div
         style={{
           display: "grid",
-          gap: "14px",
+          gap: "14px"
         }}
       >
-        {scenes.map((scene, index) => (
-          <SceneCard
-            key={scene.id || index}
-            scene={scene}
-            index={index}
-          />
-        ))}
+        {scenes.map(function (scene, index) {
+          return (
+            <SceneCard
+              key={scene.id || index}
+              scene={scene}
+              index={index}
+            />
+          );
+        })}
       </div>
 
       {filmPlan.continuityRules && (
@@ -920,13 +956,13 @@ function FilmPlanDisplay({ filmPlan }) {
             border: "1px solid #292929",
             borderRadius: "16px",
             padding: "20px",
-            marginTop: "24px",
+            marginTop: "24px"
           }}
         >
           <h3
             style={{
               margin: "0 0 12px",
-              fontSize: "19px",
+              fontSize: "19px"
             }}
           >
             Continuity Rules
@@ -936,10 +972,12 @@ function FilmPlanDisplay({ filmPlan }) {
             style={{
               color: "#aaa",
               lineHeight: 1.6,
-              whiteSpace: "pre-wrap",
+              whiteSpace: "pre-wrap"
             }}
           >
-            {renderValue(filmPlan.continuityRules)}
+            {renderValue(
+              filmPlan.continuityRules
+            )}
           </div>
         </div>
       )}
@@ -947,14 +985,17 @@ function FilmPlanDisplay({ filmPlan }) {
   );
 }
 
-function SceneCard({ scene, index }) {
+function SceneCard(props) {
+  const scene = props.scene;
+  const index = props.index;
+
   return (
     <div
       style={{
         background: "#080808",
         border: "1px solid #292929",
         borderRadius: "16px",
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
@@ -965,14 +1006,14 @@ function SceneCard({ scene, index }) {
           gap: "12px",
           padding: "15px 18px",
           background: "#111",
-          borderBottom: "1px solid #242424",
+          borderBottom: "1px solid #242424"
         }}
       >
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "12px",
+            gap: "12px"
           }}
         >
           <div
@@ -985,7 +1026,7 @@ function SceneCard({ scene, index }) {
               alignItems: "center",
               justifyContent: "center",
               fontWeight: 800,
-              fontSize: "13px",
+              fontSize: "13px"
             }}
           >
             {index + 1}
@@ -995,11 +1036,11 @@ function SceneCard({ scene, index }) {
             <div
               style={{
                 fontWeight: 800,
-                fontSize: "16px",
+                fontSize: "16px"
               }}
             >
               {scene.title ||
-                `Scene ${index + 1}`}
+                "Scene " + (index + 1)}
             </div>
 
             {scene.phase && (
@@ -1007,7 +1048,7 @@ function SceneCard({ scene, index }) {
                 style={{
                   color: "#777",
                   fontSize: "12px",
-                  marginTop: "3px",
+                  marginTop: "3px"
                 }}
               >
                 {scene.phase}
@@ -1019,10 +1060,10 @@ function SceneCard({ scene, index }) {
         <div
           style={{
             color: "#777",
-            fontSize: "12px",
+            fontSize: "12px"
           }}
         >
-          {scene.duration || 10}s
+          {String(scene.duration || 10) + "s"}
         </div>
       </div>
 
@@ -1030,7 +1071,7 @@ function SceneCard({ scene, index }) {
         style={{
           padding: "18px",
           display: "grid",
-          gap: "16px",
+          gap: "16px"
         }}
       >
         {scene.action && (
@@ -1085,7 +1126,9 @@ function SceneCard({ scene, index }) {
         {scene.continuityInstructions && (
           <SceneField
             label="Continuity"
-            value={scene.continuityInstructions}
+            value={
+              scene.continuityInstructions
+            }
           />
         )}
 
@@ -1095,7 +1138,7 @@ function SceneCard({ scene, index }) {
               background: "#111",
               border: "1px solid #252525",
               borderRadius: "12px",
-              padding: "14px",
+              padding: "14px"
             }}
           >
             <div
@@ -1104,7 +1147,7 @@ function SceneCard({ scene, index }) {
                 fontSize: "11px",
                 textTransform: "uppercase",
                 letterSpacing: "0.7px",
-                marginBottom: "8px",
+                marginBottom: "8px"
               }}
             >
               Future Runway Prompt
@@ -1114,7 +1157,7 @@ function SceneCard({ scene, index }) {
               style={{
                 color: "#aaa",
                 lineHeight: 1.6,
-                fontSize: "13px",
+                fontSize: "13px"
               }}
             >
               {scene.runwayPrompt}
@@ -1126,7 +1169,7 @@ function SceneCard({ scene, index }) {
   );
 }
 
-function SceneField({ label, value }) {
+function SceneField(props) {
   return (
     <div>
       <div
@@ -1135,10 +1178,10 @@ function SceneField({ label, value }) {
           fontSize: "11px",
           textTransform: "uppercase",
           letterSpacing: "0.7px",
-          marginBottom: "5px",
+          marginBottom: "5px"
         }}
       >
-        {label}
+        {props.label}
       </div>
 
       <div
@@ -1146,23 +1189,23 @@ function SceneField({ label, value }) {
           color: "#ccc",
           lineHeight: 1.55,
           fontSize: "14px",
-          whiteSpace: "pre-wrap",
+          whiteSpace: "pre-wrap"
         }}
       >
-        {renderValue(value)}
+        {renderValue(props.value)}
       </div>
     </div>
   );
 }
 
-function InfoBox({ label, value }) {
+function InfoBox(props) {
   return (
     <div
       style={{
         background: "#111",
         border: "1px solid #252525",
         borderRadius: "12px",
-        padding: "13px",
+        padding: "13px"
       }}
     >
       <div
@@ -1170,19 +1213,19 @@ function InfoBox({ label, value }) {
           color: "#666",
           fontSize: "11px",
           textTransform: "uppercase",
-          marginBottom: "5px",
+          marginBottom: "5px"
         }}
       >
-        {label}
+        {props.label}
       </div>
 
       <div
         style={{
           fontWeight: 700,
-          fontSize: "14px",
+          fontSize: "14px"
         }}
       >
-        {value}
+        {props.value}
       </div>
     </div>
   );
@@ -1191,29 +1234,38 @@ function InfoBox({ label, value }) {
 function formatTitle(value) {
   return String(value)
     .replace(/([A-Z])/g, " $1")
-    .replace(/^./, (char) =>
-      char.toUpperCase()
+    .replace(
+      /^./,
+      function (char) {
+        return char.toUpperCase();
+      }
     )
     .trim();
 }
 
 function renderValue(value) {
-  if (value === null || value === undefined) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
     return "";
   }
 
   if (Array.isArray(value)) {
     return value
-      .map((item) => {
+      .map(function (item) {
         if (
           typeof item === "object" &&
           item !== null
         ) {
           return Object.entries(item)
-            .map(
-              ([key, val]) =>
-                `${formatTitle(key)}: ${renderValue(val)}`
-            )
+            .map(function (entry) {
+              return (
+                formatTitle(entry[0]) +
+                ": " +
+                renderValue(entry[1])
+              );
+            })
             .join(" | ");
         }
 
@@ -1224,13 +1276,17 @@ function renderValue(value) {
 
   if (typeof value === "object") {
     return Object.entries(value)
-      .map(
-        ([key, val]) =>
-          `${formatTitle(key)}: ${renderValue(val)}`
-      )
+      .map(function (entry) {
+        return (
+          formatTitle(entry[0]) +
+          ": " +
+          renderValue(entry[1])
+        );
+      })
       .join("\n");
   }
 
   return String(value);
 }
-```
+
+export default App;
