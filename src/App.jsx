@@ -51,7 +51,7 @@ export default function App() {
 
       if (!data.characterBible || !data.worldBible) {
         throw new Error(
-          "The Bible was created, but the Character or World Bible data is missing."
+          "Character Bible or World Bible was not returned."
         );
       }
 
@@ -77,7 +77,7 @@ export default function App() {
 
     if (!characterBible || !worldBible) {
       setError(
-        "Please click BUILD CHARACTER & WORLD BIBLE first."
+        "Please build the Character & World Bible first."
       );
       return;
     }
@@ -109,7 +109,7 @@ export default function App() {
 
       if (!data.filmPlan) {
         throw new Error(
-          "The Film Plan API did not return a Film Plan."
+          "Film Plan was not returned by the API."
         );
       }
 
@@ -126,7 +126,7 @@ export default function App() {
     <div className="app">
 
       <header className="hero">
-        <div className="hero-inner">
+        <div className="heroInner">
           <h1>GABBOSS.AI FILM</h1>
           <p>AI Film Studio</p>
           <span>Powered by Runway Gen-4.5</span>
@@ -135,16 +135,14 @@ export default function App() {
 
       <main className="container">
 
-        {/* CREATE FILM */}
         <section className="card">
-
           <h2>Create Your Film</h2>
 
           <label>Story</label>
 
           <textarea
             value={story}
-            onChange={(e) => setStory(e.target.value)}
+            onChange={(event) => setStory(event.target.value)}
             placeholder="Describe the story you want to turn into a film..."
             rows={5}
           />
@@ -153,7 +151,9 @@ export default function App() {
 
           <textarea
             value={characters}
-            onChange={(e) => setCharacters(e.target.value)}
+            onChange={(event) =>
+              setCharacters(event.target.value)
+            }
             placeholder="Optional: John, Sarah, Michael..."
             rows={3}
           />
@@ -172,8 +172,7 @@ export default function App() {
                 }
                 onClick={() => setStyle(option)}
               >
-                {option.charAt(0).toUpperCase() +
-                  option.slice(1)}
+                {option.charAt(0).toUpperCase() + option.slice(1)}
               </button>
             ))}
           </div>
@@ -197,15 +196,13 @@ export default function App() {
             ))}
           </div>
 
-          <div className="film-target">
+          <div className="filmTarget">
             <strong>Film Length</strong>
             <span>5 minutes</span>
-            <small>
-              300 seconds total production time
-            </small>
+            <small>300 seconds total production time</small>
           </div>
 
-          <div className="button-row">
+          <div className="buttonRow">
 
             <button
               className="primary"
@@ -236,9 +233,10 @@ export default function App() {
           </div>
 
           {characterBible && worldBible && !filmPlan && (
-            <div className="ready-message">
-              Character Bible and World Bible ready.
-              You can now build the 5-minute Film Plan.
+            <div className="readyMessage">
+              Character Bible and World Bible are ready.
+              Click BUILD FILM PLAN to create the 5-minute
+              production plan.
             </div>
           )}
 
@@ -247,13 +245,10 @@ export default function App() {
               {error}
             </div>
           )}
-
         </section>
 
-        {/* CHARACTER BIBLE */}
         {characterBible && (
           <section className="card">
-
             <h2>Character Bible</h2>
 
             <p className="description">
@@ -267,12 +262,9 @@ export default function App() {
                   className="character"
                   key={character.id || index}
                 >
-
                   <h3>{character.role}</h3>
 
-                  <p>
-                    {character.description}
-                  </p>
+                  <p>{character.description}</p>
 
                   <p>
                     <strong>Appearance:</strong>{" "}
@@ -293,7 +285,6 @@ export default function App() {
                     <strong>Continuity:</strong>{" "}
                     {character.continuity}
                   </p>
-
                 </div>
               )
             )}
@@ -302,48 +293,34 @@ export default function App() {
 
             <ul>
               {(
-                characterBible.globalCharacterRules ||
-                []
+                characterBible.globalCharacterRules || []
               ).map((rule, index) => (
-                <li key={index}>
-                  {rule}
-                </li>
+                <li key={index}>{rule}</li>
               ))}
             </ul>
-
           </section>
         )}
 
-        {/* WORLD BIBLE */}
         {worldBible && (
           <section className="card">
-
             <h2>World Bible</h2>
 
             <p className="description">
-              These rules keep the film&apos;s world
-              visually consistent.
+              These rules keep the film world visually
+              consistent.
             </p>
 
             <h3>LOCATION</h3>
-            <p>
-              {worldBible.primaryLocation}
-            </p>
+            <p>{worldBible.primaryLocation}</p>
 
             <h3>EVENT</h3>
-            <p>
-              {worldBible.primaryEvent}
-            </p>
+            <p>{worldBible.primaryEvent}</p>
 
             <h3>TIME</h3>
-            <p>
-              {worldBible.timeOfDay}
-            </p>
+            <p>{worldBible.timeOfDay}</p>
 
             <h3>WEATHER</h3>
-            <p>
-              {worldBible.weather}
-            </p>
+            <p>{worldBible.weather}</p>
 
             {worldBible.environment && (
               <>
@@ -379,43 +356,34 @@ export default function App() {
             <ul>
               {(worldBible.globalWorldRules || []).map(
                 (rule, index) => (
-                  <li key={index}>
-                    {rule}
-                  </li>
+                  <li key={index}>{rule}</li>
                 )
               )}
             </ul>
-
           </section>
         )}
 
-        {/* FILM PLAN */}
         {filmPlan && (
           <section className="card">
 
             <h2>Film Plan</h2>
 
-            <div className="plan-summary">
-
+            <div className="planSummary">
               <strong>
                 {filmPlan.sceneCount} scenes ×{" "}
                 {filmPlan.sceneDuration} seconds ={" "}
                 {filmPlan.duration} seconds planned
               </strong>
 
-              <span>
-                5-minute film
-              </span>
-
+              <span>5-minute film</span>
             </div>
 
-            <div className="zero-credit">
-              ZERO-CREDIT TEST — Runway has not
-              been called and no credits have been used.
+            <div className="zeroCredit">
+              ZERO-CREDIT TEST — Runway has not been
+              called and no credits have been used.
             </div>
 
-            <div className="structure-box">
-
+            <div className="structureBox">
               <h3>Film Structure</h3>
 
               <p>
@@ -439,84 +407,77 @@ export default function App() {
               </p>
 
               <p>
-                <strong>Format:</strong>{" "}
-                9:16 vertical
+                <strong>Format:</strong> 9:16 vertical
               </p>
-
             </div>
 
-            <div className="scene-list">
+            <div className="sceneList">
 
-              {(filmPlan.scenes || []).map(
-                (scene) => (
-                  <article
-                    className="scene"
-                    key={scene.sceneNumber}
+              {(filmPlan.scenes || []).map((scene) => (
+                <article
+                  className="scene"
+                  key={scene.sceneNumber}
+                >
+
+                  <div className="sceneHeader">
+                    <h3>
+                      Scene {scene.sceneNumber}:{" "}
+                      {scene.title}
+                    </h3>
+
+                    <span>
+                      {scene.duration} seconds
+                    </span>
+                  </div>
+
+                  <p className="phase">
+                    {scene.phase}
+                  </p>
+
+                  <p>
+                    <strong>Action:</strong>{" "}
+                    {scene.action}
+                  </p>
+
+                  <p>
+                    <strong>Emotion:</strong>{" "}
+                    {scene.emotion}
+                  </p>
+
+                  <p>
+                    <strong>Camera:</strong>{" "}
+                    {scene.camera}
+                  </p>
+
+                  <p>
+                    <strong>Location:</strong>{" "}
+                    {scene.location}
+                  </p>
+
+                  <p>
+                    <strong>Runway Prompt:</strong>{" "}
+                    {scene.runwayPrompt}
+                  </p>
+
+                  <button
+                    type="button"
+                    className="generateDisabled"
+                    disabled
                   >
+                    GENERATE SCENE {scene.sceneNumber}
+                  </button>
 
-                    <div className="scene-header">
-
-                      <h3>
-                        Scene {scene.sceneNumber}:{" "}
-                        {scene.title}
-                      </h3>
-
-                      <span>
-                        {scene.duration} seconds
-                      </span>
-
-                    </div>
-
-                    <p className="phase">
-                      {scene.phase}
-                    </p>
-
-                    <p>
-                      <strong>Action:</strong>{" "}
-                      {scene.action}
-                    </p>
-
-                    <p>
-                      <strong>Emotion:</strong>{" "}
-                      {scene.emotion}
-                    </p>
-
-                    <p>
-                      <strong>Camera:</strong>{" "}
-                      {scene.camera}
-                    </p>
-
-                    <p>
-                      <strong>Location:</strong>{" "}
-                      {scene.location}
-                    </p>
-
-                    <p>
-                      <strong>Runway Prompt:</strong>{" "}
-                      {scene.runwayPrompt}
-                    </p>
-
-                    <button
-                      type="button"
-                      className="generate-disabled"
-                      disabled
-                    >
-                      GENERATE SCENE{" "}
-                      {scene.sceneNumber}
-                    </button>
-
-                  </article>
-                )
-              )}
+                </article>
+              ))}
 
             </div>
 
             <button
               type="button"
-              className="generate-all-disabled"
+              className="generateAllDisabled"
               disabled
             >
-              GENERATE ALL 30 SCENES
+              GENERATE ALL {filmPlan.sceneCount || 30} SCENES
             </button>
 
           </section>
@@ -525,24 +486,14 @@ export default function App() {
       </main>
 
       <style>{`
-
         * {
           box-sizing: border-box;
         }
 
         body {
           margin: 0;
-          font-family:
-            Inter,
-            Arial,
-            sans-serif;
-          background:
-            radial-gradient(
-              circle at top,
-              #18243a 0%,
-              #090d16 45%,
-              #05070c 100%
-            );
+          font-family: Arial, sans-serif;
+          background: #070b12;
           color: #f4f7fb;
         }
 
@@ -556,106 +507,44 @@ export default function App() {
         }
 
         .hero {
-          padding:
-            56px
-            20px
-            44px;
-
-          background:
-            linear-gradient(
-              135deg,
-              rgba(39, 64, 102, 0.9),
-              rgba(9, 13, 22, 0.95)
-            );
-
-          border-bottom:
-            1px solid
-            rgba(255,255,255,0.08);
+          padding: 55px 20px 45px;
+          background: #101a2b;
+          border-bottom: 1px solid #27344a;
         }
 
-        .hero-inner {
-          width:
-            min(1100px, 100%);
-          margin:
-            0 auto;
+        .heroInner {
+          width: min(1100px, 100%);
+          margin: 0 auto;
         }
 
         .hero h1 {
           margin: 0;
-
-          font-size:
-            clamp(
-              2rem,
-              5vw,
-              4rem
-            );
-
-          letter-spacing:
-            0.04em;
+          font-size: clamp(2rem, 5vw, 4rem);
+          letter-spacing: 0.04em;
         }
 
         .hero p {
-          margin:
-            10px 0 4px;
-
-          font-size:
-            1.3rem;
-
-          color:
-            #dce6f7;
+          margin: 10px 0 4px;
+          font-size: 1.3rem;
+          color: #dce6f7;
         }
 
         .hero span {
-          color:
-            #9eb4d4;
+          color: #9eb4d4;
         }
 
         .container {
-          width:
-            min(
-              1100px,
-              calc(100% - 32px)
-            );
-
-          margin:
-            32px auto 80px;
+          width: min(1100px, calc(100% - 32px));
+          margin: 32px auto 80px;
         }
 
         .card {
-          margin-bottom:
-            24px;
-
-          padding:
-            28px;
-
-          border-radius:
-            18px;
-
-          background:
-            rgba(
-              15,
-              22,
-              35,
-              0.92
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.09
-            );
-
-          box-shadow:
-            0 20px 60px
-            rgba(
-              0,
-              0,
-              0,
-              0.25
-            );
+          margin-bottom: 24px;
+          padding: 28px;
+          border-radius: 18px;
+          background: #0f1623;
+          border: 1px solid #263349;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
         }
 
         .card h2 {
@@ -669,37 +558,23 @@ export default function App() {
 
         label {
           display: block;
-
-          margin:
-            20px 0 8px;
-
+          margin: 20px 0 8px;
           font-weight: 700;
         }
 
         textarea {
           width: 100%;
-
           resize: vertical;
-
           padding: 14px;
-
           border-radius: 12px;
-
-          border:
-            1px solid
-            #334158;
-
-          background:
-            #080d16;
-
+          border: 1px solid #334158;
+          background: #080d16;
           color: white;
-
           outline: none;
         }
 
         textarea:focus {
-          border-color:
-            #7ea5dc;
+          border-color: #7ea5dc;
         }
 
         .options {
@@ -709,83 +584,45 @@ export default function App() {
         }
 
         .option {
-          border:
-            1px solid
-            #34435b;
-
-          background:
-            #0b111d;
-
-          color:
-            #dce6f7;
-
-          padding:
-            10px 16px;
-
-          border-radius:
-            999px;
-
-          cursor:
-            pointer;
+          border: 1px solid #34435b;
+          background: #0b111d;
+          color: #dce6f7;
+          padding: 10px 16px;
+          border-radius: 999px;
+          cursor: pointer;
         }
 
         .option.active {
-          background:
-            #dce6f7;
-
-          color:
-            #0a101b;
-
-          border-color:
-            #dce6f7;
+          background: #dce6f7;
+          color: #0a101b;
+          border-color: #dce6f7;
         }
 
-        .film-target {
+        .filmTarget {
           display: flex;
           flex-direction: column;
           gap: 4px;
-
           margin-top: 24px;
           padding: 16px;
-
           border-radius: 12px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.045
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.08
-            );
+          background: #151e2d;
+          border: 1px solid #29364b;
         }
 
-        .film-target strong {
+        .filmTarget strong {
           font-size: 1.15rem;
         }
 
-        .film-target span {
-          color:
-            #dce6f7;
-
-          font-size:
-            1.05rem;
+        .filmTarget span {
+          color: #dce6f7;
+          font-size: 1.05rem;
         }
 
-        .film-target small {
-          color:
-            #91a2bb;
+        .filmTarget small {
+          color: #91a2bb;
         }
 
-        .button-row {
+        .buttonRow {
           display: flex;
           flex-wrap: wrap;
           gap: 12px;
@@ -794,51 +631,29 @@ export default function App() {
 
         .primary,
         .secondary,
-        .generate-disabled,
-        .generate-all-disabled {
+        .generateDisabled,
+        .generateAllDisabled {
           border: 0;
-
           border-radius: 10px;
-
-          padding:
-            13px 18px;
-
+          padding: 13px 18px;
           font-weight: 800;
         }
 
         .primary {
-          background:
-            #eef4ff;
-
-          color:
-            #08101d;
-
-          cursor:
-            pointer;
+          background: #eef4ff;
+          color: #08101d;
+          cursor: pointer;
         }
 
         .secondary {
-          background:
-            #2a3952;
-
-          color:
-            white;
-
-          cursor:
-            pointer;
-
-          opacity: 1;
+          background: #2a3952;
+          color: white;
+          cursor: pointer;
         }
 
         .secondary.ready {
-          background:
-            #eef4ff;
-
-          color:
-            #08101d;
-
-          cursor:
-            pointer;
+          background: #eef4ff;
+          color: #08101d;
         }
 
         .primary:disabled,
@@ -847,100 +662,35 @@ export default function App() {
           cursor: not-allowed;
         }
 
-        .ready-message {
+        .readyMessage {
           margin-top: 16px;
-
-          padding:
-            12px 14px;
-
-          border-radius:
-            10px;
-
-          background:
-            rgba(
-              80,
-              170,
-              120,
-              0.12
-            );
-
-          border:
-            1px solid
-            rgba(
-              100,
-              200,
-              140,
-              0.25
-            );
-
-          color:
-            #a9e6bc;
-
-          font-weight:
-            700;
+          padding: 12px 14px;
+          border-radius: 10px;
+          background: #10251b;
+          border: 1px solid #245c3c;
+          color: #a9e6bc;
+          font-weight: 700;
         }
 
         .error {
           margin-top: 18px;
-
-          padding:
-            12px 14px;
-
-          border-radius:
-            10px;
-
-          background:
-            rgba(
-              180,
-              50,
-              50,
-              0.16
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              100,
-              100,
-              0.25
-            );
-
-          color:
-            #ffb4b4;
+          padding: 12px 14px;
+          border-radius: 10px;
+          background: #35191d;
+          border: 1px solid #69343a;
+          color: #ffb4b4;
         }
 
         .description {
-          color:
-            #9eb0c9;
+          color: #9eb0c9;
         }
 
         .character {
-          margin:
-            20px 0;
-
-          padding:
-            18px;
-
-          border-radius:
-            12px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.035
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.06
-            );
+          margin: 20px 0;
+          padding: 18px;
+          border-radius: 12px;
+          background: #111a28;
+          border: 1px solid #263349;
         }
 
         .character h3 {
@@ -949,241 +699,123 @@ export default function App() {
 
         p,
         li {
-          line-height:
-            1.65;
-
-          color:
-            #d6deeb;
+          line-height: 1.65;
+          color: #d6deeb;
         }
 
         ul {
-          padding-left:
-            22px;
+          padding-left: 22px;
         }
 
-        .plan-summary {
+        .planSummary {
           display: flex;
           flex-direction: column;
           gap: 5px;
-
           padding: 16px;
-          margin:
-            16px 0;
-
-          border-radius:
-            12px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.045
-            );
-
-          font-size:
-            1.1rem;
+          margin: 16px 0;
+          border-radius: 12px;
+          background: #151e2d;
+          font-size: 1.1rem;
         }
 
-        .plan-summary span {
-          color:
-            #9eb4d4;
+        .planSummary span {
+          color: #9eb4d4;
         }
 
-        .zero-credit {
-          margin-bottom:
-            20px;
-
-          padding:
-            12px 14px;
-
-          border-radius:
-            10px;
-
-          background:
-            rgba(
-              80,
-              170,
-              120,
-              0.12
-            );
-
-          border:
-            1px solid
-            rgba(
-              100,
-              200,
-              140,
-              0.25
-            );
-
-          color:
-            #a9e6bc;
-
-          font-weight:
-            700;
+        .zeroCredit {
+          margin-bottom: 20px;
+          padding: 12px 14px;
+          border-radius: 10px;
+          background: #10251b;
+          border: 1px solid #245c3c;
+          color: #a9e6bc;
+          font-weight: 700;
         }
 
-        .structure-box {
-          margin-bottom:
-            24px;
-
-          padding:
-            18px;
-
-          border-radius:
-            12px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.035
-            );
-
-          border:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              0.07
-            );
+        .structureBox {
+          margin-bottom: 24px;
+          padding: 18px;
+          border-radius: 12px;
+          background: #111a28;
+          border: 1px solid #263349;
         }
 
-        .structure-box h3 {
+        .structureBox h3 {
           margin-top: 0;
         }
 
-        .scene-list {
+        .sceneList {
           display: grid;
           gap: 16px;
         }
 
         .scene {
-          padding:
-            20px;
-
-          border-radius:
-            14px;
-
-          background:
-            #0a101b;
-
-          border:
-            1px solid
-            #25334a;
+          padding: 20px;
+          border-radius: 14px;
+          background: #0a101b;
+          border: 1px solid #25334a;
         }
 
-        .scene-header {
+        .sceneHeader {
           display: flex;
-
-          justify-content:
-            space-between;
-
+          justify-content: space-between;
           gap: 16px;
-
-          align-items:
-            center;
+          align-items: center;
         }
 
-        .scene-header h3 {
+        .sceneHeader h3 {
           margin: 0;
         }
 
-        .scene-header span {
-          white-space:
-            nowrap;
-
-          color:
-            #9eb4d4;
-
-          font-weight:
-            700;
+        .sceneHeader span {
+          white-space: nowrap;
+          color: #9eb4d4;
+          font-weight: 700;
         }
 
         .phase {
-          display:
-            inline-block;
-
-          padding:
-            5px 9px;
-
-          border-radius:
-            999px;
-
-          background:
-            rgba(
-              255,
-              255,
-              255,
-              0.06
-            );
-
-          color:
-            #b7c9e2;
-
-          font-size:
-            0.85rem;
-
-          font-weight:
-            700;
+          display: inline-block;
+          padding: 5px 9px;
+          border-radius: 999px;
+          background: #182235;
+          color: #b7c9e2;
+          font-size: 0.85rem;
+          font-weight: 700;
         }
 
-        .generate-disabled,
-        .generate-all-disabled {
-          background:
-            #202b3c;
-
-          color:
-            #8190a7;
-
-          cursor:
-            not-allowed;
-
-          margin-top:
-            8px;
+        .generateDisabled,
+        .generateAllDisabled {
+          background: #202b3c;
+          color: #8190a7;
+          cursor: not-allowed;
+          margin-top: 8px;
         }
 
-        .generate-all-disabled {
+        .generateAllDisabled {
           width: 100%;
-
-          margin-top:
-            22px;
-
-          padding:
-            16px;
+          margin-top: 22px;
+          padding: 16px;
         }
 
         @media (max-width: 700px) {
-
           .card {
-            padding:
-              20px;
+            padding: 20px;
           }
 
-          .scene-header {
-            align-items:
-              flex-start;
-
-            flex-direction:
-              column;
+          .sceneHeader {
+            align-items: flex-start;
+            flex-direction: column;
           }
 
-          .button-row {
-            flex-direction:
-              column;
+          .buttonRow {
+            flex-direction: column;
           }
 
           .primary,
           .secondary {
-            width:
-              100%;
+            width: 100%;
           }
-
         }
-
       `}</style>
     </div>
   );
