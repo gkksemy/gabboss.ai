@@ -13,6 +13,9 @@ export default function App() {
   const [currentTaskId, setCurrentTaskId] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const [scenes, setScenes] = useState([]);
+  const [sceneStatus, setSceneStatus] = useState('idle');
+
   const intervalRef = useRef(null);
 
   const stopPolling = () => {
@@ -22,12 +25,62 @@ export default function App() {
     }
   };
 
-  const generateReal = async () => {
+  // ---------------------------------------------
+  // CREATE FILM SCENES
+  // ---------------------------------------------
+
+  const createScenes = async () => {
     if (!story.trim()) {
-      alert('Enter your story or scene idea first.');
+      alert('Enter your story first.');
       return;
     }
 
+    setSceneStatus('generating');
+    setScenes([]);
+    setErrorMsg('');
+
+    try {
+      const response = await fetch('/api/scenes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          story,
+          characters,
+          style
+        })
+      });
+
+      const data = await response.json();
+
+      console.log('SCENE PLAN:', data);
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || 'Unable to create scenes.'
+        );
+      }
+
+      setScenes(data.scenes || []);
+      setSceneStatus('done');
+
+    } catch (error) {
+      console.error(error);
+
+      setSceneStatus('fail');
+      setErrorMsg(
+        error.message ||
+        'Unable to create film scenes.'
+      );
+    }
+  };
+
+  // ---------------------------------------------
+  // GENERATE ONE RUNWAY CLIP
+  // ---------------------------------------------
+
+  const generateScene = async (scene) => {
     stopPolling();
 
     setStatus('generating');
@@ -37,35 +90,6 @@ export default function App() {
     setErrorMsg('');
 
     try {
-      const fullPrompt = `
-${style} cinematic film scene.
-
-Story:
-${story.trim()}
-
-${characters.trim()
-  ? `Characters:
-${characters.trim()}`
-  : ''
-}
-
-Professional cinematic composition.
-Natural realistic movement.
-Consistent characters and environment.
-Detailed lighting.
-High production value.
-Smooth camera movement.
-No subtitles.
-No text on screen.
-No watermark.
-      `.trim();
-
-      console.log('Sending prompt to Runway:', fullPrompt);
-
-      // ----------------------------------
-      // CREATE RUNWAY TASK
-      // ----------------------------------
-
       const response = await fetch('/api/generate', {
         method: 'POST',
 
@@ -74,19 +98,22 @@ No watermark.
         },
 
         body: JSON.stringify({
-          prompt: fullPrompt,
+          prompt: scene.prompt,
           duration
         })
       });
 
       const data = await response.json();
 
-      console.log('Generate response:', data);
+      console.log(
+        'RUNWAY GENERATE:',
+        data
+      );
 
       if (!response.ok) {
         throw new Error(
           data.error ||
-          'Runway could not start the video'
+          'Runway could not start generation.'
         );
       }
 
@@ -107,93 +134,74 @@ No watermark.
 
       setProgress(10);
 
-      console.log(
-        'Runway task created:',
-        taskId
-      );
-
-      // ----------------------------------
+      // -----------------------------------------
       // POLL RUNWAY
-      // ----------------------------------
+      // -----------------------------------------
 
       intervalRef.current = setInterval(
         async () => {
           try {
-            const statusResponse = await fetch(
+            const response = await fetch(
               `/api/status?taskId=${encodeURIComponent(taskId)}`
             );
 
-            const statusData =
-              await statusResponse.json();
+            const data =
+              await response.json();
 
             console.log(
-              'Runway status:',
-              statusData
+              'RUNWAY STATUS:',
+              data
             );
 
-            if (!statusResponse.ok) {
+            if (!response.ok) {
               throw new Error(
-                statusData.error ||
-                'Unable to check Runway status'
+                data.error ||
+                'Unable to check Runway status.'
               );
             }
 
-            // -----------------------------
-            // VIDEO COMPLETE
-            // -----------------------------
-
+            // DONE
             if (
-              statusData.state === 'success' &&
-              statusData.video_url
+              data.state === 'success' &&
+              data.video_url
             ) {
               stopPolling();
 
               setVideoUrl(
-                statusData.video_url
+                data.video_url
               );
 
               setStatus('done');
               setProgress(100);
 
-              console.log(
-                'VIDEO READY:',
-                statusData.video_url
-              );
-
               return;
             }
 
-            // -----------------------------
-            // VIDEO FAILED
-            // -----------------------------
-
+            // FAILED
             if (
-              statusData.state === 'fail'
+              data.state === 'fail'
             ) {
               stopPolling();
 
               setStatus('fail');
 
               setErrorMsg(
-                statusData.failReason ||
-                'Runway video generation failed.'
+                data.failReason ||
+                'Runway generation failed.'
               );
 
               return;
             }
 
-            // -----------------------------
-            // STILL GENERATING
-            // -----------------------------
-
+            // GENERATING
             if (
-              typeof statusData.progress ===
+              typeof data.progress ===
               'number'
             ) {
               setProgress(
                 Math.min(
                   Math.max(
-                    statusData.progress,
+                    data.progress,
                     10
                   ),
                   95
@@ -201,7 +209,10 @@ No watermark.
               );
             } else {
               setProgress(prev =>
-                Math.min(prev + 3, 95)
+                Math.min(
+                  prev + 3,
+                  95
+                )
               );
             }
 
@@ -216,8 +227,7 @@ No watermark.
             setStatus('fail');
 
             setErrorMsg(
-              error.message ||
-              'Could not check generation status.'
+              error.message
             );
           }
         },
@@ -248,15 +258,15 @@ No watermark.
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center">
+    <div className="min-h-screen bg-black text-white p-6">
 
-      <div className="w-full max-w-3xl">
+      <div className="max-w-5xl mx-auto">
 
         {/* HEADER */}
 
-        <div className="text-center mb-8">
+        <div className="text-center mb-10">
 
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight">
+          <h1 className="text-5xl font-black">
             GABBOSS.AI FILM
           </h1>
 
@@ -270,230 +280,310 @@ No watermark.
 
         </div>
 
-        {/* MAIN CARD */}
+        {/* STORY INPUT */}
 
-        <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl space-y-5">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
 
-          {/* STORY */}
+          <h2 className="text-xl font-bold mb-5">
+            Create Your Film
+          </h2>
 
-          <div>
+          <label className="block text-sm font-semibold mb-2">
+            Story
+          </label>
 
-            <label className="block text-sm font-semibold mb-2">
-              Story / Scene
-            </label>
+          <textarea
+            value={story}
+            onChange={e =>
+              setStory(e.target.value)
+            }
+            placeholder="Write your movie idea or story..."
+            className="w-full h-36 p-4 bg-black border border-zinc-800 rounded-xl text-white outline-none resize-none"
+          />
 
-            <textarea
-              value={story}
-              onChange={e =>
-                setStory(e.target.value)
-              }
-              placeholder="Example: A young African filmmaker walks through downtown Nashville at night after a long day at work. He receives a mysterious phone call that changes everything..."
-              className="w-full p-4 bg-black border border-zinc-800 rounded-xl h-32 outline-none focus:border-white resize-none"
-            />
+          <label className="block text-sm font-semibold mt-5 mb-2">
+            Characters
+          </label>
+
+          <input
+            value={characters}
+            onChange={e =>
+              setCharacters(e.target.value)
+            }
+            placeholder="Example: Marcus — 30-year-old man, black jacket, white shirt"
+            className="w-full p-4 bg-black border border-zinc-800 rounded-xl text-white outline-none"
+          />
+
+          <div className="grid md:grid-cols-2 gap-4 mt-5">
+
+            <div>
+
+              <label className="block text-sm font-semibold mb-2">
+                Visual Style
+              </label>
+
+              <select
+                value={style}
+                onChange={e =>
+                  setStyle(e.target.value)
+                }
+                className="w-full p-4 bg-black border border-zinc-800 rounded-xl"
+              >
+
+                <option value="cinematic">
+                  Cinematic
+                </option>
+
+                <option value="realistic">
+                  Realistic
+                </option>
+
+                <option value="anime">
+                  Anime
+                </option>
+
+              </select>
+
+            </div>
+
+            <div>
+
+              <label className="block text-sm font-semibold mb-2">
+                Runway Clip Length
+              </label>
+
+              <select
+                value={duration}
+                onChange={e =>
+                  setDuration(
+                    Number(e.target.value)
+                  )
+                }
+                className="w-full p-4 bg-black border border-zinc-800 rounded-xl"
+              >
+
+                <option value={5}>
+                  5 seconds
+                </option>
+
+                <option value={10}>
+                  10 seconds
+                </option>
+
+              </select>
+
+            </div>
 
           </div>
 
-          {/* CHARACTERS */}
+          {/* PLAN BUTTON */}
 
-          <div>
+          <button
+            onClick={createScenes}
+            disabled={
+              sceneStatus === 'generating'
+            }
+            className="w-full mt-6 py-4 bg-white text-black font-black rounded-xl disabled:opacity-50"
+          >
 
-            <label className="block text-sm font-semibold mb-2">
-              Characters
-            </label>
+            {sceneStatus === 'generating'
+              ? 'BUILDING FILM PLAN...'
+              : 'BUILD FILM PLAN'}
 
-            <input
-              value={characters}
-              onChange={e =>
-                setCharacters(e.target.value)
-              }
-              placeholder="Example: Marcus — 30-year-old man, black jacket, white shirt"
-              className="w-full p-4 bg-black border border-zinc-800 rounded-xl outline-none focus:border-white"
-            />
+          </button>
 
-          </div>
+        </div>
 
-          {/* DURATION */}
+        {/* SCENES */}
 
-          <div>
+        {scenes.length > 0 && (
 
-            <label className="block text-sm font-semibold mb-2">
-              Clip Length
-            </label>
+          <div className="mt-8">
 
-            <div className="flex gap-3">
+            <div className="flex items-center justify-between mb-5">
 
-              {[5, 10].map(seconds => (
+              <div>
 
-                <button
-                  key={seconds}
-                  type="button"
-                  onClick={() =>
-                    setDuration(seconds)
-                  }
-                  className={
-                    `px-6 py-3 rounded-xl font-bold transition ${
-                      duration === seconds
-                        ? 'bg-white text-black'
-                        : 'bg-zinc-800 text-white'
-                    }`
-                  }
+                <h2 className="text-2xl font-black">
+                  Your Film
+                </h2>
+
+                <p className="text-gray-500 text-sm">
+                  {scenes.length} scenes •{' '}
+                  {scenes.length * 5} seconds
+                </p>
+
+              </div>
+
+            </div>
+
+            <div className="space-y-4">
+
+              {scenes.map(scene => (
+
+                <div
+                  key={scene.sceneNumber}
+                  className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5"
                 >
-                  {seconds} seconds
-                </button>
+
+                  <div className="flex items-start justify-between gap-4">
+
+                    <div>
+
+                      <p className="text-xs text-gray-500 uppercase font-bold">
+                        Scene {scene.sceneNumber}
+                      </p>
+
+                      <h3 className="text-xl font-bold mt-1">
+                        {scene.title}
+                      </h3>
+
+                      <p className="text-gray-400 text-sm mt-2">
+                        {scene.purpose}
+                      </p>
+
+                    </div>
+
+                    <span className="text-xs bg-zinc-800 px-3 py-2 rounded-lg whitespace-nowrap">
+                      {scene.duration}s
+                    </span>
+
+                  </div>
+
+                  <details className="mt-4">
+
+                    <summary className="cursor-pointer text-sm text-gray-400">
+                      View Runway prompt
+                    </summary>
+
+                    <p className="mt-3 text-xs text-gray-500 whitespace-pre-wrap leading-relaxed">
+                      {scene.prompt}
+                    </p>
+
+                  </details>
+
+                  {/* GENERATE THIS SCENE */}
+
+                  <button
+                    onClick={() =>
+                      generateScene(scene)
+                    }
+                    disabled={
+                      status === 'generating'
+                    }
+                    className="mt-5 w-full py-3 bg-white text-black font-bold rounded-xl disabled:opacity-50"
+                  >
+
+                    Generate Scene {scene.sceneNumber}
+
+                  </button>
+
+                </div>
 
               ))}
 
             </div>
 
-            <p className="text-xs text-gray-500 mt-2">
-              Runway Gen-4.5 generates individual clips.
-              Longer films will be assembled from multiple clips.
-            </p>
-
           </div>
 
-          {/* STYLE */}
+        )}
 
-          <div>
+        {/* GENERATION STATUS */}
 
-            <label className="block text-sm font-semibold mb-2">
-              Visual Style
-            </label>
+        {(status === 'generating' ||
+          status === 'done' ||
+          status === 'fail') && (
 
-            <select
-              value={style}
-              onChange={e =>
-                setStyle(e.target.value)
-              }
-              className="w-full p-4 bg-black border border-zinc-800 rounded-xl outline-none"
-            >
+          <div className="mt-8 bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
 
-              <option value="cinematic">
-                Cinematic
-              </option>
+            <h2 className="text-xl font-bold mb-4">
+              Runway Generation
+            </h2>
 
-              <option value="realistic">
-                Realistic
-              </option>
+            {status === 'generating' && (
 
-              <option value="anime">
-                Anime
-              </option>
+              <>
+                <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
 
-            </select>
+                  <div
+                    className="bg-white h-2 rounded-full"
+                    style={{
+                      width: `${progress}%`
+                    }}
+                  />
 
-          </div>
+                </div>
 
-          {/* GENERATE */}
+                <p className="text-center text-gray-500 text-sm mt-3">
+                  Runway is generating Scene...
+                  {' '}
+                  {progress}%
+                </p>
+              </>
 
-          <button
-            onClick={generateReal}
-            disabled={status === 'generating'}
-            className="w-full py-4 bg-white text-black font-black rounded-xl hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {status === 'generating'
-              ? `GENERATING ${progress}%`
-              : 'GENERATE FILM CLIP'}
-          </button>
+            )}
 
-          {/* PROGRESS */}
+            {currentTaskId && (
 
-          {status === 'generating' && (
+              <p className="text-xs text-gray-600 break-all mt-4">
+                Task ID: {currentTaskId}
+              </p>
 
-            <div className="space-y-2">
+            )}
 
-              <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+            {status === 'fail' && (
 
-                <div
-                  className="bg-white h-2 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${progress}%`
-                  }}
-                />
+              <div className="bg-red-950/30 border border-red-900 rounded-xl p-4">
+
+                <p className="text-red-400 font-bold">
+                  Generation failed
+                </p>
+
+                <p className="text-red-300 text-sm mt-2 break-words">
+                  {errorMsg}
+                </p>
 
               </div>
 
-              <p className="text-center text-xs text-gray-500">
-                Runway is generating your video...
-              </p>
+            )}
 
-            </div>
+            {videoUrl && (
 
-          )}
+              <div className="mt-5">
 
-          {/* TASK ID */}
+                <p className="text-green-400 font-bold mb-3">
+                  ✓ Scene generated successfully
+                </p>
 
-          {currentTaskId && (
+                <video
+                  src={videoUrl}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full rounded-xl"
+                />
 
-            <div className="bg-black border border-zinc-800 rounded-xl p-3">
+                <a
+                  href={videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-center mt-3 bg-zinc-800 py-3 rounded-xl text-sm font-bold"
+                >
+                  Open Video
+                </a>
 
-              <p className="text-xs text-gray-500 mb-1">
-                Runway Task ID
-              </p>
+              </div>
 
-              <p className="text-xs text-gray-300 break-all">
-                {currentTaskId}
-              </p>
+            )}
 
-            </div>
+          </div>
 
-          )}
-
-          {/* ERROR */}
-
-          {errorMsg && (
-
-            <div className="bg-red-950/30 border border-red-900 rounded-xl p-4">
-
-              <p className="text-red-400 text-sm font-semibold">
-                Generation failed
-              </p>
-
-              <p className="text-red-300 text-sm mt-1 break-words">
-                {errorMsg}
-              </p>
-
-            </div>
-
-          )}
-
-          {/* VIDEO */}
-
-          {videoUrl && (
-
-            <div className="space-y-3">
-
-              <p className="text-green-400 font-bold">
-                ✓ Video ready
-              </p>
-
-              <video
-                src={videoUrl}
-                controls
-                autoPlay
-                playsInline
-                className="w-full rounded-xl border border-zinc-800"
-              />
-
-              <a
-                href={videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-center bg-zinc-800 hover:bg-zinc-700 py-3 rounded-xl text-sm font-semibold"
-              >
-                Open Video
-              </a>
-
-            </div>
-
-          )}
-
-        </div>
+        )}
 
         {/* FOOTER */}
 
-        <p className="text-center text-xs text-gray-600 mt-6">
-          GABBOSS.AI FILM — AI-powered filmmaking
+        <p className="text-center text-gray-600 text-xs mt-10">
+          GABBOSS.AI FILM
         </p>
 
       </div>
