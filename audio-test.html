@@ -1,0 +1,324 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>ElevenLabs Scene 1 Audio Test</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 30px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 700px;
+      background: #1b1b1b;
+      border: 1px solid #333;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #aaa;
+      margin-bottom: 25px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid #444;
+      background: #101010;
+      color: #fff;
+      font-size: 16px;
+      line-height: 1.5;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: #777;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 18px;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      background: #fff;
+      color: #111;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #ddd;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #status {
+      margin-top: 20px;
+      padding: 14px;
+      border-radius: 10px;
+      background: #101010;
+      color: #bbb;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      display: none;
+    }
+
+    audio {
+      width: 100%;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .success {
+      color: #7ee787;
+    }
+
+    .error {
+      color: #ff7b72;
+    }
+
+    .info {
+      color: #79c0ff;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>Scene 1 Audio Test</h1>
+
+    <div class="subtitle">
+      ElevenLabs voice test — no Runway credits are used.
+    </div>
+
+    <label for="sceneText">
+      Scene 1 narration
+    </label>
+
+    <textarea id="sceneText">The city was still asleep when Marcus stepped into the empty street. A cold wind moved between the buildings as he looked toward the distant lights.</textarea>
+
+    <button id="generateButton">
+      Generate Scene 1 Audio
+    </button>
+
+    <div id="status"></div>
+
+    <audio
+      id="audioPlayer"
+      controls>
+    </audio>
+
+  </div>
+
+  <script>
+    const generateButton =
+      document.getElementById("generateButton");
+
+    const sceneText =
+      document.getElementById("sceneText");
+
+    const status =
+      document.getElementById("status");
+
+    const audioPlayer =
+      document.getElementById("audioPlayer");
+
+
+    function showStatus(message, type = "info") {
+      status.style.display = "block";
+      status.className = type;
+      status.textContent = message;
+    }
+
+
+    generateButton.addEventListener("click", async () => {
+
+      const text = sceneText.value.trim();
+
+      if (!text) {
+        showStatus(
+          "Please enter Scene 1 narration first.",
+          "error"
+        );
+
+        return;
+      }
+
+
+      generateButton.disabled = true;
+
+      audioPlayer.style.display = "none";
+      audioPlayer.removeAttribute("src");
+      audioPlayer.load();
+
+
+      showStatus(
+        "Generating Scene 1 audio with ElevenLabs...",
+        "info"
+      );
+
+
+      try {
+
+        const response = await fetch(
+          "/api/audio-test",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+              text: text
+            })
+          }
+        );
+
+
+        if (!response.ok) {
+
+          let errorMessage =
+            "Audio generation failed.";
+
+          try {
+
+            const errorData =
+              await response.json();
+
+            errorMessage =
+              errorData.error ||
+              errorMessage;
+
+            if (errorData.details) {
+              errorMessage +=
+                "\n\nDetails:\n" +
+                errorData.details;
+            }
+
+          } catch (jsonError) {
+
+            const rawError =
+              await response.text();
+
+            if (rawError) {
+              errorMessage +=
+                "\n\n" +
+                rawError;
+            }
+          }
+
+
+          throw new Error(errorMessage);
+        }
+
+
+        const audioBlob =
+          await response.blob();
+
+
+        if (!audioBlob.size) {
+          throw new Error(
+            "ElevenLabs returned an empty audio file."
+          );
+        }
+
+
+        const audioUrl =
+          URL.createObjectURL(audioBlob);
+
+
+        audioPlayer.src = audioUrl;
+        audioPlayer.style.display = "block";
+
+
+        showStatus(
+          "SUCCESS — Scene 1 audio was generated.\n\n" +
+          "Audio size: " +
+          Math.round(audioBlob.size / 1024) +
+          " KB",
+          "success"
+        );
+
+
+        try {
+          await audioPlayer.play();
+        } catch (playError) {
+          // Browser may block automatic playback.
+          // The audio controls remain available.
+          console.log(
+            "Automatic playback was blocked by the browser."
+          );
+        }
+
+      } catch (error) {
+
+        console.error(
+          "Scene 1 audio test failed:",
+          error
+        );
+
+
+        showStatus(
+          "ERROR\n\n" +
+          error.message,
+          "error"
+        );
+
+      } finally {
+
+        generateButton.disabled = false;
+
+      }
+
+    });
+  </script>
+
+</body>
+</html>
+```
