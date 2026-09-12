@@ -1,4 +1,3 @@
-```jsx
 import { useState } from 'react';
 
 export default function App() {
@@ -13,10 +12,9 @@ export default function App() {
 
   const [loadingBible, setLoadingBible] = useState(false);
   const [loadingScenes, setLoadingScenes] = useState(false);
-
   const [generatingScene, setGeneratingScene] = useState(null);
-  const [sceneVideos, setSceneVideos] = useState({});
 
+  const [sceneVideos, setSceneVideos] = useState({});
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
@@ -66,10 +64,6 @@ export default function App() {
       let currentCharacterBible = characterBible;
       let currentWorldBible = worldBible;
 
-      /*
-       * If the user has not built the Bible yet,
-       * build it automatically first.
-       */
       if (!currentCharacterBible || !currentWorldBible) {
         const bibleResponse = await fetch('/api/bible', {
           method: 'POST',
@@ -132,7 +126,8 @@ export default function App() {
       }
 
       setMessage(
-        `${data.totalScenes || 6}-scene film plan created successfully.`
+        String(data.totalScenes || 6) +
+          '-scene film plan created successfully.'
       );
     } catch (err) {
       setError(err.message || 'Failed to build film plan.');
@@ -147,9 +142,13 @@ export default function App() {
     }
 
     const confirmed = window.confirm(
-      `Generate Scene ${scene.id} with Runway?\n\n` +
-      `This will use Runway credits.\n\n` +
-      `Scene duration: ${scene.duration} seconds`
+      'Generate Scene ' +
+        scene.id +
+        ' with Runway?\n\n' +
+        'This will use Runway credits.\n\n' +
+        'Scene duration: ' +
+        scene.duration +
+        ' seconds'
     );
 
     if (!confirmed) {
@@ -191,12 +190,13 @@ export default function App() {
       let finished = false;
 
       while (!finished) {
-        await new Promise(resolve =>
-          setTimeout(resolve, 5000)
-        );
+        await new Promise(function (resolve) {
+          setTimeout(resolve, 5000);
+        });
 
         const statusResponse = await fetch(
-          `/api/status?taskId=${encodeURIComponent(taskId)}`
+          '/api/status?taskId=' +
+            encodeURIComponent(taskId)
         );
 
         const statusData = await statusResponse.json();
@@ -222,13 +222,17 @@ export default function App() {
             );
           }
 
-          setSceneVideos(previous => ({
-            ...previous,
-            [scene.id]: videoUrl
-          }));
+          setSceneVideos(function (previous) {
+            return {
+              ...previous,
+              [scene.id]: videoUrl
+            };
+          });
 
           setMessage(
-            `Scene ${scene.id} finished successfully.`
+            'Scene ' +
+              scene.id +
+              ' finished successfully.'
           );
 
           finished = true;
@@ -245,7 +249,9 @@ export default function App() {
     } catch (err) {
       setError(
         err.message ||
-          `Failed to generate Scene ${scene.id}.`
+          'Failed to generate Scene ' +
+            scene.id +
+            '.'
       );
     } finally {
       setGeneratingScene(null);
@@ -261,16 +267,24 @@ export default function App() {
     }
 
     const totalSeconds = scenes.reduce(
-      (total, scene) =>
-        total + Number(scene.duration || clipDuration),
+      function (total, scene) {
+        return (
+          total +
+          Number(scene.duration || clipDuration)
+        );
+      },
       0
     );
 
     const confirmed = window.confirm(
-      `WARNING: This will generate ALL ${scenes.length} scenes with Runway.\n\n` +
-      `Total video: ${totalSeconds} seconds.\n\n` +
-      `This will use Runway credits for every scene.\n\n` +
-      `Continue?`
+      'WARNING: This will generate ALL ' +
+        scenes.length +
+        ' scenes with Runway.\n\n' +
+        'Total video: ' +
+        totalSeconds +
+        ' seconds.\n\n' +
+        'This will use Runway credits for every scene.\n\n' +
+        'Continue?'
     );
 
     if (!confirmed) {
@@ -307,21 +321,22 @@ export default function App() {
 
         if (!taskId) {
           throw new Error(
-            `Scene ${scene.id} did not return a task ID.`
+            'Scene ' +
+              scene.id +
+              ' did not return a task ID.'
           );
         }
 
         let finished = false;
 
         while (!finished) {
-          await new Promise(resolve =>
-            setTimeout(resolve, 5000)
-          );
+          await new Promise(function (resolve) {
+            setTimeout(resolve, 5000);
+          });
 
           const statusResponse = await fetch(
-            `/api/status?taskId=${encodeURIComponent(
-              taskId
-            )}`
+            '/api/status?taskId=' +
+              encodeURIComponent(taskId)
           );
 
           const statusData =
@@ -330,7 +345,9 @@ export default function App() {
           if (!statusResponse.ok) {
             throw new Error(
               statusData.error ||
-                `Failed checking Scene ${scene.id}.`
+                'Failed checking Scene ' +
+                  scene.id +
+                  '.'
             );
           }
 
@@ -344,14 +361,18 @@ export default function App() {
 
             if (!videoUrl) {
               throw new Error(
-                `Scene ${scene.id} completed without a video URL.`
+                'Scene ' +
+                  scene.id +
+                  ' completed without a video URL.'
               );
             }
 
-            setSceneVideos(previous => ({
-              ...previous,
-              [scene.id]: videoUrl
-            }));
+            setSceneVideos(function (previous) {
+              return {
+                ...previous,
+                [scene.id]: videoUrl
+              };
+            });
 
             finished = true;
           } else if (
@@ -360,21 +381,27 @@ export default function App() {
           ) {
             throw new Error(
               statusData.failReason ||
-                `Scene ${scene.id} failed.`
+                'Scene ' +
+                  scene.id +
+                  ' failed.'
             );
           }
         }
       } catch (err) {
         setError(
           err.message ||
-            `Scene ${scene.id} failed.`
+            'Scene ' +
+              scene.id +
+              ' failed.'
         );
         break;
       }
     }
 
     setGeneratingScene(null);
-    setMessage('Scene generation process finished.');
+    setMessage(
+      'Scene generation process finished.'
+    );
   }
 
   function renderCharacterBible() {
@@ -387,51 +414,50 @@ export default function App() {
         <h2>Character Bible</h2>
 
         <p className="section-description">
-          These character rules will keep the cast
-          consistent.
+          These character rules will keep the cast consistent.
         </p>
 
         {Array.isArray(characterBible.characters) &&
-          characterBible.characters.map(character => (
-            <div
-              key={character.id}
-              className="character-card"
-            >
-              <h3>{character.role}</h3>
+          characterBible.characters.map(function (character) {
+            return (
+              <div
+                key={character.id}
+                className="character-card"
+              >
+                <h3>{character.role}</h3>
 
-              <p>
-                {character.description}
-              </p>
+                <p>{character.description}</p>
 
-              {character.appearance && (
-                <p>
-                  <strong>Appearance:</strong>{' '}
-                  {character.appearance}
-                </p>
-              )}
+                {character.appearance && (
+                  <p>
+                    <strong>Appearance:</strong>{' '}
+                    {character.appearance}
+                  </p>
+                )}
 
-              {character.clothing && (
-                <p>
-                  <strong>Clothing:</strong>{' '}
-                  {character.clothing}
-                </p>
-              )}
+                {character.clothing && (
+                  <p>
+                    <strong>Clothing:</strong>{' '}
+                    {character.clothing}
+                  </p>
+                )}
 
-              {character.personality && (
-                <p>
-                  <strong>Personality:</strong>{' '}
-                  {character.personality}
-                </p>
-              )}
+                {character.personality && (
+                  <p>
+                    <strong>Personality:</strong>{' '}
+                    {character.personality}
+                  </p>
+                )}
 
-              {character.continuity && (
-                <p>
-                  <strong>Continuity:</strong>{' '}
-                  {character.continuity}
-                </p>
-              )}
-            </div>
-          ))}
+                {character.continuity && (
+                  <p>
+                    <strong>Continuity:</strong>{' '}
+                    {character.continuity}
+                  </p>
+                )}
+              </div>
+            );
+          })}
 
         {Array.isArray(
           characterBible.globalCharacterRules
@@ -441,9 +467,11 @@ export default function App() {
 
             <ul>
               {characterBible.globalCharacterRules.map(
-                (rule, index) => (
-                  <li key={index}>{rule}</li>
-                )
+                function (rule, index) {
+                  return (
+                    <li key={index}>{rule}</li>
+                  );
+                }
               )}
             </ul>
           </div>
@@ -465,8 +493,7 @@ export default function App() {
         <h2>World Bible</h2>
 
         <p className="section-description">
-          These rules keep the film's world
-          visually consistent.
+          These rules keep the film's world visually consistent.
         </p>
 
         <div className="world-details">
@@ -554,9 +581,11 @@ export default function App() {
 
             <ul>
               {worldBible.globalWorldRules.map(
-                (rule, index) => (
-                  <li key={index}>{rule}</li>
-                )
+                function (rule, index) {
+                  return (
+                    <li key={index}>{rule}</li>
+                  );
+                }
               )}
             </ul>
           </div>
@@ -581,11 +610,7 @@ export default function App() {
           margin: '0 auto'
         }}
       >
-        <header
-          style={{
-            marginBottom: '40px'
-          }}
-        >
+        <header style={{ marginBottom: '40px' }}>
           <h1
             style={{
               fontSize: '42px',
@@ -637,9 +662,9 @@ export default function App() {
 
           <textarea
             value={story}
-            onChange={e =>
-              setStory(e.target.value)
-            }
+            onChange={function (e) {
+              setStory(e.target.value);
+            }}
             placeholder="Example: A family gathers for Thanksgiving dinner in Nashville..."
             rows={7}
             style={{
@@ -667,9 +692,9 @@ export default function App() {
 
           <input
             value={characters}
-            onChange={e =>
-              setCharacters(e.target.value)
-            }
+            onChange={function (e) {
+              setCharacters(e.target.value);
+            }}
             placeholder="Optional: Marcus, Sarah, David..."
             style={{
               width: '100%',
@@ -704,9 +729,9 @@ export default function App() {
 
               <select
                 value={style}
-                onChange={e =>
-                  setStyle(e.target.value)
-                }
+                onChange={function (e) {
+                  setStyle(e.target.value);
+                }}
                 style={{
                   width: '100%',
                   background: '#181818',
@@ -720,9 +745,11 @@ export default function App() {
                 <option value="cinematic">
                   Cinematic
                 </option>
+
                 <option value="realistic">
                   Realistic
                 </option>
+
                 <option value="anime">
                   Anime
                 </option>
@@ -741,11 +768,11 @@ export default function App() {
 
               <select
                 value={clipDuration}
-                onChange={e =>
+                onChange={function (e) {
                   setClipDuration(
                     Number(e.target.value)
-                  )
-                }
+                  );
+                }}
                 style={{
                   width: '100%',
                   background: '#181818',
@@ -759,6 +786,7 @@ export default function App() {
                 <option value={5}>
                   5 seconds
                 </option>
+
                 <option value={10}>
                   10 seconds
                 </option>
@@ -861,7 +889,7 @@ export default function App() {
             <h2>Film Plan</h2>
 
             <p className="section-description">
-              {scenes.length} scenes ×{' '}
+              {scenes.length} scenes x{' '}
               {clipDuration} seconds ={' '}
               {scenes.length * clipDuration}{' '}
               seconds planned.
@@ -897,121 +925,123 @@ export default function App() {
               </button>
             </div>
 
-            {scenes.map(scene => (
-              <div
-                key={scene.id}
-                style={{
-                  background: '#111',
-                  border: '1px solid #292929',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  marginBottom: '18px'
-                }}
-              >
+            {scenes.map(function (scene) {
+              return (
                 <div
+                  key={scene.id}
                   style={{
-                    display: 'flex',
-                    justifyContent:
-                      'space-between',
-                    gap: '15px',
-                    flexWrap: 'wrap'
+                    background: '#111',
+                    border: '1px solid #292929',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    marginBottom: '18px'
                   }}
                 >
-                  <div>
-                    <h3
-                      style={{
-                        marginTop: 0
-                      }}
-                    >
-                      Scene {scene.id}:{' '}
-                      {scene.title}
-                    </h3>
-
-                    <p
-                      style={{
-                        color: '#aaa'
-                      }}
-                    >
-                      {scene.purpose}
-                    </p>
-
-                    <p
-                      style={{
-                        color: '#777'
-                      }}
-                    >
-                      Duration:{' '}
-                      {scene.duration} seconds
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() =>
-                      generateScene(scene)
-                    }
-                    disabled={
-                      generatingScene !== null
-                    }
-                    style={{
-                      height: 'fit-content',
-                      padding: '12px 16px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      cursor:
-                        generatingScene !== null
-                          ? 'not-allowed'
-                          : 'pointer',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    {generatingScene ===
-                    scene.id
-                      ? 'GENERATING...'
-                      : `GENERATE SCENE ${scene.id}`}
-                  </button>
-                </div>
-
-                {sceneVideos[scene.id] && (
                   <div
                     style={{
-                      marginTop: '20px'
+                      display: 'flex',
+                      justifyContent:
+                        'space-between',
+                      gap: '15px',
+                      flexWrap: 'wrap'
                     }}
                   >
-                    <video
-                      src={
-                        sceneVideos[scene.id]
-                      }
-                      controls
-                      playsInline
-                      style={{
-                        width: '100%',
-                        maxWidth: '420px',
-                        borderRadius: '10px'
-                      }}
-                    />
-
-                    <p>
-                      <a
-                        href={
-                          sceneVideos[scene.id]
-                        }
-                        target="_blank"
-                        rel="noreferrer"
+                    <div>
+                      <h3
                         style={{
-                          color: '#fff'
+                          marginTop: 0
                         }}
                       >
-                        Open Scene {scene.id}
-                      </a>
-                    </p>
+                        Scene {scene.id}:{' '}
+                        {scene.title}
+                      </h3>
+
+                      <p
+                        style={{
+                          color: '#aaa'
+                        }}
+                      >
+                        {scene.purpose}
+                      </p>
+
+                      <p
+                        style={{
+                          color: '#777'
+                        }}
+                      >
+                        Duration:{' '}
+                        {scene.duration} seconds
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={function () {
+                        generateScene(scene);
+                      }}
+                      disabled={
+                        generatingScene !== null
+                      }
+                      style={{
+                        height: 'fit-content',
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor:
+                          generatingScene !== null
+                            ? 'not-allowed'
+                            : 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {generatingScene ===
+                      scene.id
+                        ? 'GENERATING...'
+                        : 'GENERATE SCENE ' +
+                          scene.id}
+                    </button>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {sceneVideos[scene.id] && (
+                    <div
+                      style={{
+                        marginTop: '20px'
+                      }}
+                    >
+                      <video
+                        src={
+                          sceneVideos[scene.id]
+                        }
+                        controls
+                        playsInline
+                        style={{
+                          width: '100%',
+                          maxWidth: '420px',
+                          borderRadius: '10px'
+                        }}
+                      />
+
+                      <p>
+                        <a
+                          href={
+                            sceneVideos[scene.id]
+                          }
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            color: '#fff'
+                          }}
+                        >
+                          Open Scene {scene.id}
+                        </a>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </section>
         )}
       </div>
     </div>
   );
 }
-```
