@@ -164,7 +164,7 @@ const zeroCreditStyle = {
   fontWeight: "700"
 };
 
-export default function App() {
+function App() {
   const [story, setStory] = useState(DEFAULT_STORY);
   const [characters, setCharacters] = useState("");
   const [style, setStyle] = useState("cinematic");
@@ -206,7 +206,8 @@ export default function App() {
 
       if (!response.ok) {
         throw new Error(
-          data.error || "Failed to build Character and World Bible."
+          data.error ||
+            "Failed to build Character and World Bible."
         );
       }
 
@@ -218,7 +219,6 @@ export default function App() {
 
       setCharacterBible(data.characterBible);
       setWorldBible(data.worldBible);
-
     } catch (err) {
       setError(err.message || "Something went wrong.");
       setCharacterBible(null);
@@ -275,7 +275,6 @@ export default function App() {
       }
 
       setFilmPlan(data.filmPlan);
-
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -285,9 +284,13 @@ export default function App() {
 
   return (
     <div style={pageStyle}>
-
       <header style={heroStyle}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+        <div
+          style={{
+            maxWidth: "1100px",
+            margin: "0 auto"
+          }}
+        >
           <h1
             style={{
               margin: 0,
@@ -315,13 +318,10 @@ export default function App() {
       </header>
 
       <main style={containerStyle}>
-
         <section style={cardStyle}>
           <h2>Create Your Film</h2>
 
-          <label style={labelStyle}>
-            Story
-          </label>
+          <label style={labelStyle}>Story</label>
 
           <textarea
             value={story}
@@ -333,9 +333,7 @@ export default function App() {
             style={textareaStyle}
           />
 
-          <label style={labelStyle}>
-            Characters
-          </label>
+          <label style={labelStyle}>Characters</label>
 
           <textarea
             value={characters}
@@ -347,9 +345,7 @@ export default function App() {
             style={textareaStyle}
           />
 
-          <label style={labelStyle}>
-            Visual Style
-          </label>
+          <label style={labelStyle}>Visual Style</label>
 
           <div style={optionContainerStyle}>
             {["cinematic", "realistic", "anime"].map(
@@ -394,7 +390,9 @@ export default function App() {
 
           <div style={filmTargetStyle}>
             <strong>Film Length</strong>
+
             <span>5 minutes</span>
+
             <small style={{ color: "#91a2bb" }}>
               300 seconds total production time
             </small>
@@ -440,8 +438,8 @@ export default function App() {
           {characterBible && worldBible && !filmPlan && (
             <div style={messageStyle}>
               Character Bible and World Bible are ready.
-              Click BUILD FILM PLAN to create the 5-minute
-              production plan.
+              Click BUILD FILM PLAN to create the
+              5-minute production plan.
             </div>
           )}
 
@@ -504,7 +502,8 @@ export default function App() {
 
             <ul style={{ paddingLeft: "22px" }}>
               {(
-                characterBible.globalCharacterRules || []
+                characterBible.globalCharacterRules ||
+                []
               ).map((rule, index) => (
                 <li
                   key={index}
@@ -530,21 +529,25 @@ export default function App() {
             </p>
 
             <h3>LOCATION</h3>
+
             <p>
               {worldBible.primaryLocation}
             </p>
 
             <h3>EVENT</h3>
+
             <p>
               {worldBible.primaryEvent}
             </p>
 
             <h3>TIME</h3>
+
             <p>
               {worldBible.timeOfDay}
             </p>
 
             <h3>WEATHER</h3>
+
             <p>
               {worldBible.weather}
             </p>
@@ -552,26 +555,32 @@ export default function App() {
             {worldBible.environment && (
               <>
                 <h3>LIGHTING</h3>
+
                 <p>
                   {worldBible.environment.lighting}
                 </p>
 
                 <h3>ARCHITECTURE</h3>
+
                 <p>
                   {worldBible.environment.architecture}
                 </p>
 
                 <h3>INTERIOR DESIGN</h3>
+
                 <p>
                   {worldBible.environment.interiorDesign}
                 </p>
 
                 <h3>OUTDOOR ENVIRONMENT</h3>
+
                 <p>
-                  {worldBible.environment.outdoorEnvironment}
+                  {worldBible.environment
+                    .outdoorEnvironment}
                 </p>
 
                 <h3>ATMOSPHERE</h3>
+
                 <p>
                   {worldBible.environment.atmosphere}
                 </p>
@@ -602,7 +611,6 @@ export default function App() {
 
         {filmPlan && (
           <section style={cardStyle}>
-
             <h2>Film Plan</h2>
 
             <div
@@ -669,85 +677,89 @@ export default function App() {
                 gap: "16px"
               }}
             >
-              {(filmPlan.scenes || []).map((scene) => (
-                <article
-                  style={sceneStyle}
-                  key={scene.sceneNumber}
-                >
-
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: "16px",
-                      alignItems: "center"
-                    }}
+              {(filmPlan.scenes || []).map(
+                (scene) => (
+                  <article
+                    style={sceneStyle}
+                    key={scene.sceneNumber}
                   >
-                    <h3 style={{ margin: 0 }}>
-                      Scene {scene.sceneNumber}:{" "}
-                      {scene.title}
-                    </h3>
-
-                    <span
+                    <div
                       style={{
-                        whiteSpace: "nowrap",
-                        color: "#9eb4d4",
+                        display: "flex",
+                        justifyContent:
+                          "space-between",
+                        gap: "16px",
+                        alignItems: "center"
+                      }}
+                    >
+                      <h3 style={{ margin: 0 }}>
+                        Scene {scene.sceneNumber}:{" "}
+                        {scene.title}
+                      </h3>
+
+                      <span
+                        style={{
+                          whiteSpace: "nowrap",
+                          color: "#9eb4d4",
+                          fontWeight: "700"
+                        }}
+                      >
+                        {scene.duration} seconds
+                      </span>
+                    </div>
+
+                    <p
+                      style={{
+                        display: "inline-block",
+                        padding: "5px 9px",
+                        borderRadius: "999px",
+                        background: "#182235",
+                        color: "#b7c9e2",
+                        fontSize: "0.85rem",
                         fontWeight: "700"
                       }}
                     >
-                      {scene.duration} seconds
-                    </span>
-                  </div>
+                      {scene.phase}
+                    </p>
 
-                  <p
-                    style={{
-                      display: "inline-block",
-                      padding: "5px 9px",
-                      borderRadius: "999px",
-                      background: "#182235",
-                      color: "#b7c9e2",
-                      fontSize: "0.85rem",
-                      fontWeight: "700"
-                    }}
-                  >
-                    {scene.phase}
-                  </p>
+                    <p>
+                      <strong>Action:</strong>{" "}
+                      {scene.action}
+                    </p>
 
-                  <p>
-                    <strong>Action:</strong>{" "}
-                    {scene.action}
-                  </p>
+                    <p>
+                      <strong>Emotion:</strong>{" "}
+                      {scene.emotion}
+                    </p>
 
-                  <p>
-                    <strong>Emotion:</strong>{" "}
-                    {scene.emotion}
-                  </p>
+                    <p>
+                      <strong>Camera:</strong>{" "}
+                      {scene.camera}
+                    </p>
 
-                  <p>
-                    <strong>Camera:</strong>{" "}
-                    {scene.camera}
-                  </p>
+                    <p>
+                      <strong>Location:</strong>{" "}
+                      {scene.location}
+                    </p>
 
-                  <p>
-                    <strong>Location:</strong>{" "}
-                    {scene.location}
-                  </p>
+                    <p>
+                      <strong>
+                        Runway Prompt:
+                      </strong>{" "}
+                      {scene.runwayPrompt}
+                    </p>
 
-                  <p>
-                    <strong>Runway Prompt:</strong>{" "}
-                    {scene.runwayPrompt}
-                  </p>
-
-                  <button
-                    type="button"
-                    disabled
-                    style={disabledButtonStyle}
-                  >
-                    GENERATE SCENE {scene.sceneNumber}
-                  </button>
-
-                </article>
-              ))}
+                    <button
+                      type="button"
+                      disabled
+                      style={disabledButtonStyle}
+                    >
+                      GENERATE SCENE{" "}
+                      {scene.sceneNumber}
+                    </button>
+                  </article>
+                )
+              )}
             </div>
 
             <button
@@ -763,12 +775,12 @@ export default function App() {
               GENERATE ALL{" "}
               {filmPlan.sceneCount || 30} SCENES
             </button>
-
           </section>
         )}
-
       </main>
     </div>
   );
 }
+
+export default App;
 ```
