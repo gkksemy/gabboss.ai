@@ -1,7 +1,6 @@
 // api/scenes.js
-// GABBOSS.AI FILM
-// Converts a story into 6 structured film scenes.
-// This version does NOT call Runway and does NOT spend Runway credits.
+// Creates a 6-scene film plan.
+// This endpoint does NOT call Runway and does NOT use Runway credits.
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -10,230 +9,184 @@ export default async function handler(req, res) {
     });
   }
 
-  const {
-    story,
-    characters,
-    style
-  } = req.body || {};
+  try {
+    const {
+      story,
+      characters = '',
+      style = 'cinematic',
+      clipDuration = 5
+    } = req.body || {};
 
-  if (!story || !String(story).trim()) {
-    return res.status(400).json({
-      error: 'Please enter a story.'
-    });
-  }
+    if (!story || !story.trim()) {
+      return res.status(400).json({
+        error: 'Please enter a story.'
+      });
+    }
 
-  const cleanStory = String(story).trim();
+    const duration = Number(clipDuration) === 10 ? 10 : 5;
 
-  const characterInfo = characters
-    ? String(characters).trim()
-    : 'Main character based on the story';
+    const characterText = characters.trim()
+      ? `Main characters: ${characters.trim()}.`
+      : 'Create consistent original characters appropriate for the story.';
 
-  const visualStyle = style || 'cinematic';
+    const styleText = {
+      cinematic: 'cinematic live-action film',
+      realistic: 'highly realistic live-action film',
+      anime: 'high-quality anime cinematic animation'
+    }[style] || 'cinematic live-action film';
 
-  /*
-   * We intentionally create six scenes here instead of
-   * generating videos. This lets us test the film structure
-   * before using Runway credits.
-   */
-
-  const scenes = [
-    {
-      sceneNumber: 1,
-      title: 'Opening',
-      purpose: 'Establish the world, location, atmosphere, and main character.',
-      duration: 5,
-      prompt: `
-${visualStyle} cinematic opening shot.
-
-Story:
-${cleanStory}
-
-Characters:
-${characterInfo}
-
-Show the world and environment first.
-Introduce the main character naturally.
-Establish the location, time of day, mood, lighting,
-and visual atmosphere.
-
-Professional filmmaking.
-Natural human movement.
-Cinematic camera movement.
-Realistic depth and lighting.
-No text.
+    const base = `
+${styleText}.
+${characterText}
+Maintain the same characters, clothing, locations, visual identity, lighting style, and world throughout every scene.
+Vertical 9:16 composition.
 No subtitles.
+No text on screen.
+No logos.
 No watermark.
-      `.trim()
-    },
+Professional filmmaking.
+`;
 
-    {
-      sceneNumber: 2,
-      title: 'The Setup',
-      purpose: 'Move the story forward and introduce the main situation.',
-      duration: 5,
-      prompt: `
-${visualStyle} cinematic film scene.
+    const scenes = [
+      {
+        id: 1,
+        title: 'Opening',
+        purpose: 'Introduce the world, location, atmosphere, and main character.',
+        duration,
+        prompt: `
+${base}
+SCENE 1 — OPENING.
+
+${story}
+
+Open with a visually powerful establishing shot.
+Introduce the main character naturally.
+Show where and when the story takes place.
+Build atmosphere and curiosity.
+Slow cinematic camera movement.
+Strong visual composition.
+`
+      },
+
+      {
+        id: 2,
+        title: 'The Setup',
+        purpose: 'Establish the character situation and what they want.',
+        duration,
+        prompt: `
+${base}
+SCENE 2 — THE SETUP.
 
 Continue directly from Scene 1.
 
 Story:
-${cleanStory}
+${story}
 
-Characters:
-${characterInfo}
+Show the main character dealing with the situation introduced in the opening.
+Clearly establish their goal, problem, or motivation.
+Keep the character appearance and environment consistent.
+Use cinematic camera movement and natural acting.
+`
+      },
 
-Show the main character becoming involved in the central situation.
-Maintain the same character appearance, clothing,
-location, environment, lighting, and time period.
-
-Natural acting and body movement.
-Cinematic camera movement.
-Professional film composition.
-No text.
-No subtitles.
-No watermark.
-      `.trim()
-    },
-
-    {
-      sceneNumber: 3,
-      title: 'Discovery',
-      purpose: 'Reveal important information or create a turning point.',
-      duration: 5,
-      prompt: `
-${visualStyle} cinematic film scene.
+      {
+        id: 3,
+        title: 'Discovery',
+        purpose: 'Introduce an important discovery, opportunity, or complication.',
+        duration,
+        prompt: `
+${base}
+SCENE 3 — DISCOVERY.
 
 Continue directly from the previous scene.
 
 Story:
-${cleanStory}
+${story}
 
-Characters:
-${characterInfo}
+The main character discovers something important that changes the direction of the story.
+Make the discovery visually clear.
+Increase tension and emotional interest.
+Maintain exact character and environment continuity.
+`
+      },
 
-Create an important discovery, realization,
-interaction, or turning point based on the story.
+      {
+        id: 4,
+        title: 'Conflict',
+        purpose: 'Create the main obstacle or confrontation.',
+        duration,
+        prompt: `
+${base}
+SCENE 4 — CONFLICT.
 
-Keep all characters visually consistent.
-Keep clothing, location, environment,
-lighting, and time period consistent.
+Continue directly from Scene 3.
 
-Strong facial expressions.
-Natural movement.
-Professional cinematic composition.
-No text.
-No subtitles.
-No watermark.
-      `.trim()
-    },
+Story:
+${story}
 
-    {
-      sceneNumber: 4,
-      title: 'Conflict',
-      purpose: 'Increase tension and create the main conflict.',
-      duration: 5,
-      prompt: `
-${visualStyle} cinematic film scene.
+Introduce the major conflict or obstacle.
+The stakes should become higher.
+Show believable reactions from the characters.
+Use dynamic cinematic camera movement while maintaining visual continuity.
+`
+      },
+
+      {
+        id: 5,
+        title: 'Climax',
+        purpose: 'Deliver the most intense and important moment.',
+        duration,
+        prompt: `
+${base}
+SCENE 5 — CLIMAX.
 
 Continue directly from the previous scene.
 
 Story:
-${cleanStory}
+${story}
 
-Characters:
-${characterInfo}
+Create the most intense moment of the film.
+The main character must face the central problem.
+Make the scene visually dramatic and emotionally powerful.
+Use professional cinematic composition and movement.
+`
+      },
 
-Build the main conflict or tension.
-The characters should react naturally to what
-has happened in the story.
+      {
+        id: 6,
+        title: 'Ending',
+        purpose: 'Resolve the story and provide a satisfying final image.',
+        duration,
+        prompt: `
+${base}
+SCENE 6 — ENDING.
 
-Maintain character identity and appearance.
-Maintain clothing and environment consistency.
-
-Dramatic but believable acting.
-Dynamic cinematic camera movement.
-Professional lighting.
-No text.
-No subtitles.
-No watermark.
-      `.trim()
-    },
-
-    {
-      sceneNumber: 5,
-      title: 'Climax',
-      purpose: 'Create the strongest dramatic moment of the story.',
-      duration: 5,
-      prompt: `
-${visualStyle} cinematic climax.
-
-Continue directly from the previous scene.
+Continue directly from Scene 5.
 
 Story:
-${cleanStory}
+${story}
 
-Characters:
-${characterInfo}
+Resolve the main conflict.
+Show the result of what happened.
+End with a memorable cinematic final shot.
+The ending should feel complete while leaving room for a possible sequel if appropriate.
+`
+      }
+    ];
 
-Create the strongest dramatic moment in the story.
-Show the consequences of the conflict.
+    return res.status(200).json({
+      success: true,
+      totalScenes: scenes.length,
+      clipDuration: duration,
+      totalDuration: scenes.length * duration,
+      scenes
+    });
 
-Keep character appearance,
-clothing, environment, and location consistent.
+  } catch (error) {
+    console.error('SCENES ERROR:', error);
 
-High production value.
-Strong cinematic composition.
-Natural movement.
-Dynamic camera work.
-Dramatic lighting.
-No text.
-No subtitles.
-No watermark.
-      `.trim()
-    },
-
-    {
-      sceneNumber: 6,
-      title: 'Ending',
-      purpose: 'Resolve the story or create a strong ending/cliffhanger.',
-      duration: 5,
-      prompt: `
-${visualStyle} cinematic ending.
-
-Continue directly from the previous scene.
-
-Story:
-${cleanStory}
-
-Characters:
-${characterInfo}
-
-Create a satisfying ending or cinematic cliffhanger
-based on the story.
-
-Maintain the same characters,
-clothing, environment, location,
-lighting, and visual style.
-
-End with a memorable cinematic image.
-
-Professional filmmaking.
-Natural movement.
-Beautiful composition.
-No text.
-No subtitles.
-No watermark.
-      `.trim()
-    }
-  ];
-
-  return res.status(200).json({
-    success: true,
-    totalScenes: scenes.length,
-    totalDuration: scenes.reduce(
-      (total, scene) => total + scene.duration,
-      0
-    ),
-    scenes
-  });
+    return res.status(500).json({
+      error: error.message || 'Failed to create film plan.'
+    });
+  }
 }
