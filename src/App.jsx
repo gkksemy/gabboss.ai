@@ -321,7 +321,9 @@ function App() {
         <section style={cardStyle}>
           <h2>Create Your Film</h2>
 
-          <label style={labelStyle}>Story</label>
+          <label style={labelStyle}>
+            Story
+          </label>
 
           <textarea
             value={story}
@@ -333,7 +335,9 @@ function App() {
             style={textareaStyle}
           />
 
-          <label style={labelStyle}>Characters</label>
+          <label style={labelStyle}>
+            Characters
+          </label>
 
           <textarea
             value={characters}
@@ -345,7 +349,9 @@ function App() {
             style={textareaStyle}
           />
 
-          <label style={labelStyle}>Visual Style</label>
+          <label style={labelStyle}>
+            Visual Style
+          </label>
 
           <div style={optionContainerStyle}>
             {["cinematic", "realistic", "anime"].map(
