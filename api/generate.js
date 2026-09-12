@@ -8,36 +8,35 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing prompt' });
   }
 
-  const API_KEY = process.env.GABBOSS_KIE_KEY;
-  
+  const API_KEY = process.env.RUNWAY_API_KEY;
   if (!API_KEY) {
-    return res.status(500).json({ error: 'API key GABBOSS_KIE_KEY not found in Vercel env' });
+    return res.status(500).json({ error: 'RUNWAY_API_KEY not found' });
   }
 
   try {
-    const r = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
+    const r = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-Runway-Version': '2024-11-06'
       },
       body: JSON.stringify({
-        model: 'veo3_fast',
-        input: {
-          prompt: String(prompt).slice(0, 3000),
-          aspect_ratio: "16:9"
-        }
+        promptText: String(prompt).slice(0, 1000),
+        model: 'gen3a_turbo',
+        duration: 5,
+        ratio: '1280:720'
       })
     });
 
     const data = await r.json();
-    console.log('KIE Response:', data);
+    console.log('RUNWAY Response:', data);
 
-    if (data.code !== 200) {
-      return res.status(data.code || 400).json(data);
+    if (!r.ok) {
+      return res.status(r.status).json(data);
     }
 
-    return res.status(200).json({ taskId: data.data.taskId });
+    return res.status(200).json({ taskId: data.id });
 
   } catch (e) {
     console.error(e);
