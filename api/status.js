@@ -9,5 +9,25 @@ export default async function handler(req, res) {
     }
   });
   const data = await r.json();
-  return res.status(200).json(data);
+
+  console.log('STATUS:', data.status);
+
+  // Convert Runway format to your frontend format
+  if (data.status === 'SUCCEEDED' && data.output && data.output[0]) {
+    return res.status(200).json({
+      status: 'SUCCEEDED',
+      videoUrl: data.output[0],
+      progress: 100
+    });
+  }
+
+  if (data.status === 'FAILED') {
+    return res.status(200).json({ status: 'FAILED', failReason: data.failure || data.error });
+  }
+
+  // Still running
+  return res.status(200).json({
+    status: 'PROCESSING',
+    progress: data.progress? Math.round(data.progress * 100) : 92
+  });
 }
