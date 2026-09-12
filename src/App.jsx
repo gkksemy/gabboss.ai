@@ -1,37 +1,40 @@
-import { useState } from 'react';
+import { useState } from "react";
+
+const DEFAULT_STORY = "family thanksgiving dinner in nashville Tn";
 
 export default function App() {
-  const [story, setStory] = useState('');
-  const [characters, setCharacters] = useState('');
-  const [style, setStyle] = useState('cinematic');
-  const [clipDuration, setClipDuration] = useState(5);
+  const [story, setStory] = useState(DEFAULT_STORY);
+  const [characters, setCharacters] = useState("");
+  const [style, setStyle] = useState("cinematic");
+  const [clipLength, setClipLength] = useState(10);
 
   const [characterBible, setCharacterBible] = useState(null);
   const [worldBible, setWorldBible] = useState(null);
-  const [scenes, setScenes] = useState([]);
+  const [filmPlan, setFilmPlan] = useState(null);
 
   const [loadingBible, setLoadingBible] = useState(false);
-  const [loadingScenes, setLoadingScenes] = useState(false);
-  const [generatingScene, setGeneratingScene] = useState(null);
-
-  const [sceneVideos, setSceneVideos] = useState({});
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const [loadingPlan, setLoadingPlan] = useState(false);
+  const [error, setError] = useState("");
 
   async function buildBible() {
-    setError('');
-    setMessage('');
+    setError("");
+
+    if (!story.trim()) {
+      setError("Please enter a story.");
+      return;
+    }
+
     setLoadingBible(true);
 
     try {
-      const response = await fetch('/api/bible', {
-        method: 'POST',
+      const response = await fetch("/api/bible", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          story,
-          characters,
+          story: story.trim(),
+          characters: characters.trim(),
           style
         })
       });
@@ -39,71 +42,53 @@ export default function App() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to build Bible.');
+        throw new Error(
+          data.error || "Failed to build Character and World Bible."
+        );
       }
 
       setCharacterBible(data.characterBible);
       setWorldBible(data.worldBible);
-
-      setMessage(
-        'Character Bible and World Bible created successfully.'
-      );
+      setFilmPlan(null);
     } catch (err) {
-      setError(err.message || 'Failed to build Bible.');
+      setError(err.message || "Something went wrong.");
     } finally {
       setLoadingBible(false);
     }
   }
 
   async function buildFilmPlan() {
-    setError('');
-    setMessage('');
-    setLoadingScenes(true);
+    setError("");
+
+    if (!story.trim()) {
+      setError("Please enter a story.");
+      return;
+    }
+
+    if (!characterBible || !worldBible) {
+      setError("Build the Character & World Bible first.");
+      return;
+    }
+
+    setLoadingPlan(true);
 
     try {
-      let currentCharacterBible = characterBible;
-      let currentWorldBible = worldBible;
-
-      if (!currentCharacterBible || !currentWorldBible) {
-        const bibleResponse = await fetch('/api/bible', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            story,
-            characters,
-            style
-          })
-        });
-
-        const bibleData = await bibleResponse.json();
-
-        if (!bibleResponse.ok) {
-          throw new Error(
-            bibleData.error || 'Failed to build Bible.'
-          );
-        }
-
-        currentCharacterBible = bibleData.characterBible;
-        currentWorldBible = bibleData.worldBible;
-
-        setCharacterBible(currentCharacterBible);
-        setWorldBible(currentWorldBible);
-      }
-
-      const response = await fetch('/api/scenes', {
-        method: 'POST',
+      const response = await fetch("/api/film-plan", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          story,
-          characters,
-          style,
-          clipDuration,
-          characterBible: currentCharacterBible,
-          worldBible: currentWorldBible
+          story: story.trim(),
+
+          // IMPORTANT:
+          // The actual film is 5 minutes = 300 seconds.
+          duration: 300,
+
+          clipLength: Number(clipLength),
+
+          characterBible,
+          worldBible
         })
       });
 
@@ -111,937 +96,1047 @@ export default function App() {
 
       if (!response.ok) {
         throw new Error(
-          data.error || 'Failed to build film plan.'
+          data.error || "Failed to build Film Plan."
         );
       }
 
-      setScenes(data.scenes || []);
-
-      if (data.characterBible) {
-        setCharacterBible(data.characterBible);
-      }
-
-      if (data.worldBible) {
-        setWorldBible(data.worldBible);
-      }
-
-      setMessage(
-        String(data.totalScenes || 6) +
-          '-scene film plan created successfully.'
-      );
+      setFilmPlan(data.filmPlan);
     } catch (err) {
-      setError(err.message || 'Failed to build film plan.');
+      setError(err.message || "Something went wrong.");
     } finally {
-      setLoadingScenes(false);
+      setLoadingPlan(false);
     }
-  }
-
-  async function generateScene(scene) {
-    if (generatingScene !== null) {
-      return;
-    }
-
-    const confirmed = window.confirm(
-      'Generate Scene ' +
-        scene.id +
-        ' with Runway?\n\n' +
-        'This will use Runway credits.\n\n' +
-        'Scene duration: ' +
-        scene.duration +
-        ' seconds'
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setError('');
-    setMessage('');
-    setGeneratingScene(scene.id);
-
-    try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          prompt: scene.prompt,
-          duration: scene.duration
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || 'Runway generation failed.'
-        );
-      }
-
-      const taskId = data.taskId;
-
-      if (!taskId) {
-        throw new Error(
-          'Runway did not return a task ID.'
-        );
-      }
-
-      let finished = false;
-
-      while (!finished) {
-        await new Promise(function (resolve) {
-          setTimeout(resolve, 5000);
-        });
-
-        const statusResponse = await fetch(
-          '/api/status?taskId=' +
-            encodeURIComponent(taskId)
-        );
-
-        const statusData = await statusResponse.json();
-
-        if (!statusResponse.ok) {
-          throw new Error(
-            statusData.error ||
-              'Failed to check Runway status.'
-          );
-        }
-
-        if (
-          statusData.state === 'success' ||
-          statusData.status === 'SUCCEEDED'
-        ) {
-          const videoUrl =
-            statusData.video_url ||
-            statusData.videoUrl;
-
-          if (!videoUrl) {
-            throw new Error(
-              'Runway completed but no video URL was returned.'
-            );
-          }
-
-          setSceneVideos(function (previous) {
-            return {
-              ...previous,
-              [scene.id]: videoUrl
-            };
-          });
-
-          setMessage(
-            'Scene ' +
-              scene.id +
-              ' finished successfully.'
-          );
-
-          finished = true;
-        } else if (
-          statusData.state === 'fail' ||
-          statusData.status === 'FAILED'
-        ) {
-          throw new Error(
-            statusData.failReason ||
-              'Runway generation failed.'
-          );
-        }
-      }
-    } catch (err) {
-      setError(
-        err.message ||
-          'Failed to generate Scene ' +
-            scene.id +
-            '.'
-      );
-    } finally {
-      setGeneratingScene(null);
-    }
-  }
-
-  async function generateAllScenes() {
-    if (!scenes.length) {
-      setError(
-        'Build the film plan before generating scenes.'
-      );
-      return;
-    }
-
-    const totalSeconds = scenes.reduce(
-      function (total, scene) {
-        return (
-          total +
-          Number(scene.duration || clipDuration)
-        );
-      },
-      0
-    );
-
-    const confirmed = window.confirm(
-      'WARNING: This will generate ALL ' +
-        scenes.length +
-        ' scenes with Runway.\n\n' +
-        'Total video: ' +
-        totalSeconds +
-        ' seconds.\n\n' +
-        'This will use Runway credits for every scene.\n\n' +
-        'Continue?'
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setError('');
-    setMessage('');
-
-    for (const scene of scenes) {
-      try {
-        setGeneratingScene(scene.id);
-
-        const response = await fetch('/api/generate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            prompt: scene.prompt,
-            duration: scene.duration
-          })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.error || 'Runway generation failed.'
-          );
-        }
-
-        const taskId = data.taskId;
-
-        if (!taskId) {
-          throw new Error(
-            'Scene ' +
-              scene.id +
-              ' did not return a task ID.'
-          );
-        }
-
-        let finished = false;
-
-        while (!finished) {
-          await new Promise(function (resolve) {
-            setTimeout(resolve, 5000);
-          });
-
-          const statusResponse = await fetch(
-            '/api/status?taskId=' +
-              encodeURIComponent(taskId)
-          );
-
-          const statusData =
-            await statusResponse.json();
-
-          if (!statusResponse.ok) {
-            throw new Error(
-              statusData.error ||
-                'Failed checking Scene ' +
-                  scene.id +
-                  '.'
-            );
-          }
-
-          if (
-            statusData.state === 'success' ||
-            statusData.status === 'SUCCEEDED'
-          ) {
-            const videoUrl =
-              statusData.video_url ||
-              statusData.videoUrl;
-
-            if (!videoUrl) {
-              throw new Error(
-                'Scene ' +
-                  scene.id +
-                  ' completed without a video URL.'
-              );
-            }
-
-            setSceneVideos(function (previous) {
-              return {
-                ...previous,
-                [scene.id]: videoUrl
-              };
-            });
-
-            finished = true;
-          } else if (
-            statusData.state === 'fail' ||
-            statusData.status === 'FAILED'
-          ) {
-            throw new Error(
-              statusData.failReason ||
-                'Scene ' +
-                  scene.id +
-                  ' failed.'
-            );
-          }
-        }
-      } catch (err) {
-        setError(
-          err.message ||
-            'Scene ' +
-              scene.id +
-              ' failed.'
-        );
-        break;
-      }
-    }
-
-    setGeneratingScene(null);
-    setMessage(
-      'Scene generation process finished.'
-    );
-  }
-
-  function renderCharacterBible() {
-    if (!characterBible) {
-      return null;
-    }
-
-    return (
-      <section className="panel">
-        <h2>Character Bible</h2>
-
-        <p className="section-description">
-          These character rules will keep the cast consistent.
-        </p>
-
-        {Array.isArray(characterBible.characters) &&
-          characterBible.characters.map(function (character) {
-            return (
-              <div
-                key={character.id}
-                className="character-card"
-              >
-                <h3>{character.role}</h3>
-
-                <p>{character.description}</p>
-
-                {character.appearance && (
-                  <p>
-                    <strong>Appearance:</strong>{' '}
-                    {character.appearance}
-                  </p>
-                )}
-
-                {character.clothing && (
-                  <p>
-                    <strong>Clothing:</strong>{' '}
-                    {character.clothing}
-                  </p>
-                )}
-
-                {character.personality && (
-                  <p>
-                    <strong>Personality:</strong>{' '}
-                    {character.personality}
-                  </p>
-                )}
-
-                {character.continuity && (
-                  <p>
-                    <strong>Continuity:</strong>{' '}
-                    {character.continuity}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-
-        {Array.isArray(
-          characterBible.globalCharacterRules
-        ) && (
-          <div className="rules">
-            <h3>Character Continuity Rules</h3>
-
-            <ul>
-              {characterBible.globalCharacterRules.map(
-                function (rule, index) {
-                  return (
-                    <li key={index}>{rule}</li>
-                  );
-                }
-              )}
-            </ul>
-          </div>
-        )}
-      </section>
-    );
-  }
-
-  function renderWorldBible() {
-    if (!worldBible) {
-      return null;
-    }
-
-    const environment =
-      worldBible.environment || {};
-
-    return (
-      <section className="panel">
-        <h2>World Bible</h2>
-
-        <p className="section-description">
-          These rules keep the film's world visually consistent.
-        </p>
-
-        <div className="world-details">
-          <div className="world-item">
-            <h3>LOCATION</h3>
-            <p>
-              {worldBible.primaryLocation ||
-                environment.primaryLocation ||
-                'Not specified'}
-            </p>
-          </div>
-
-          <div className="world-item">
-            <h3>EVENT</h3>
-            <p>
-              {worldBible.primaryEvent ||
-                'Not specified'}
-            </p>
-          </div>
-
-          <div className="world-item">
-            <h3>TIME</h3>
-            <p>
-              {worldBible.timeOfDay ||
-                environment.time ||
-                'Not specified'}
-            </p>
-          </div>
-
-          <div className="world-item">
-            <h3>WEATHER</h3>
-            <p>
-              {worldBible.weather ||
-                environment.weather ||
-                'Not specified'}
-            </p>
-          </div>
-
-          <div className="world-item">
-            <h3>LIGHTING</h3>
-            <p>
-              {environment.lighting ||
-                'Not specified'}
-            </p>
-          </div>
-
-          <div className="world-item">
-            <h3>ARCHITECTURE</h3>
-            <p>
-              {environment.architecture ||
-                'Not specified'}
-            </p>
-          </div>
-
-          <div className="world-item">
-            <h3>INTERIOR DESIGN</h3>
-            <p>
-              {environment.interiorDesign ||
-                'Not specified'}
-            </p>
-          </div>
-
-          <div className="world-item">
-            <h3>OUTDOOR ENVIRONMENT</h3>
-            <p>
-              {environment.outdoorEnvironment ||
-                'Not specified'}
-            </p>
-          </div>
-
-          <div className="world-item">
-            <h3>ATMOSPHERE</h3>
-            <p>
-              {environment.atmosphere ||
-                'Not specified'}
-            </p>
-          </div>
-        </div>
-
-        {Array.isArray(
-          worldBible.globalWorldRules
-        ) && (
-          <div className="rules">
-            <h3>World Continuity Rules</h3>
-
-            <ul>
-              {worldBible.globalWorldRules.map(
-                function (rule, index) {
-                  return (
-                    <li key={index}>{rule}</li>
-                  );
-                }
-              )}
-            </ul>
-          </div>
-        )}
-      </section>
-    );
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#080808',
-        color: '#fff',
-        padding: '40px 20px',
-        boxSizing: 'border-box'
-      }}
-    >
-      <div
-        style={{
-          maxWidth: '1100px',
-          margin: '0 auto'
-        }}
-      >
-        <header style={{ marginBottom: '40px' }}>
-          <h1
-            style={{
-              fontSize: '42px',
-              marginBottom: '8px'
-            }}
-          >
-            GABBOSS.AI FILM
-          </h1>
+    <div className="app">
+      <header className="hero">
+        <div className="hero-inner">
+          <h1>GABBOSS.AI FILM</h1>
+          <p>AI Film Studio</p>
+          <span>Powered by Runway Gen-4.5</span>
+        </div>
+      </header>
 
-          <p
-            style={{
-              color: '#aaa',
-              fontSize: '18px'
-            }}
-          >
-            AI Film Studio
-          </p>
+      <main className="container">
 
-          <p
-            style={{
-              color: '#777',
-              fontSize: '14px'
-            }}
-          >
-            Powered by Runway Gen-4.5
-          </p>
-        </header>
-
-        <section
-          style={{
-            background: '#111',
-            border: '1px solid #222',
-            borderRadius: '14px',
-            padding: '25px',
-            marginBottom: '30px'
-          }}
-        >
+        {/* CREATE FILM */}
+        <section className="card">
           <h2>Create Your Film</h2>
 
-          <label
-            style={{
-              display: 'block',
-              marginTop: '20px',
-              marginBottom: '8px'
-            }}
-          >
-            Story
-          </label>
+          <label>Story</label>
 
           <textarea
             value={story}
-            onChange={function (e) {
-              setStory(e.target.value);
-            }}
-            placeholder="Example: A family gathers for Thanksgiving dinner in Nashville..."
-            rows={7}
-            style={{
-              width: '100%',
-              boxSizing: 'border-box',
-              background: '#181818',
-              color: '#fff',
-              border: '1px solid #333',
-              borderRadius: '10px',
-              padding: '14px',
-              fontSize: '16px',
-              resize: 'vertical'
-            }}
+            onChange={(e) => setStory(e.target.value)}
+            placeholder="Describe the story you want to turn into a film..."
+            rows={5}
           />
 
-          <label
-            style={{
-              display: 'block',
-              marginTop: '20px',
-              marginBottom: '8px'
-            }}
-          >
-            Characters
-          </label>
+          <label>Characters</label>
 
-          <input
+          <textarea
             value={characters}
-            onChange={function (e) {
-              setCharacters(e.target.value);
-            }}
-            placeholder="Optional: Marcus, Sarah, David..."
-            style={{
-              width: '100%',
-              boxSizing: 'border-box',
-              background: '#181818',
-              color: '#fff',
-              border: '1px solid #333',
-              borderRadius: '10px',
-              padding: '14px',
-              fontSize: '16px'
-            }}
+            onChange={(e) => setCharacters(e.target.value)}
+            placeholder="Optional: John, Sarah, Michael..."
+            rows={3}
           />
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns:
-                'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '15px',
-              marginTop: '20px'
-            }}
-          >
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '8px'
-                }}
+          <label>Visual Style</label>
+
+          <div className="options">
+            {["cinematic", "realistic", "anime"].map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={
+                  style === option
+                    ? "option active"
+                    : "option"
+                }
+                onClick={() => setStyle(option)}
               >
-                Visual Style
-              </label>
-
-              <select
-                value={style}
-                onChange={function (e) {
-                  setStyle(e.target.value);
-                }}
-                style={{
-                  width: '100%',
-                  background: '#181818',
-                  color: '#fff',
-                  border: '1px solid #333',
-                  borderRadius: '10px',
-                  padding: '14px',
-                  fontSize: '16px'
-                }}
-              >
-                <option value="cinematic">
-                  Cinematic
-                </option>
-
-                <option value="realistic">
-                  Realistic
-                </option>
-
-                <option value="anime">
-                  Anime
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: '8px'
-                }}
-              >
-                Runway Clip Length
-              </label>
-
-              <select
-                value={clipDuration}
-                onChange={function (e) {
-                  setClipDuration(
-                    Number(e.target.value)
-                  );
-                }}
-                style={{
-                  width: '100%',
-                  background: '#181818',
-                  color: '#fff',
-                  border: '1px solid #333',
-                  borderRadius: '10px',
-                  padding: '14px',
-                  fontSize: '16px'
-                }}
-              >
-                <option value={5}>
-                  5 seconds
-                </option>
-
-                <option value={10}>
-                  10 seconds
-                </option>
-              </select>
-            </div>
+                {option.charAt(0).toUpperCase() +
+                  option.slice(1)}
+              </button>
+            ))}
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              gap: '12px',
-              flexWrap: 'wrap',
-              marginTop: '25px'
-            }}
-          >
+          <label>Runway Clip Length</label>
+
+          <div className="options">
+            {[5, 10].map((seconds) => (
+              <button
+                key={seconds}
+                type="button"
+                className={
+                  clipLength === seconds
+                    ? "option active"
+                    : "option"
+                }
+                onClick={() => setClipLength(seconds)}
+              >
+                {seconds} seconds
+              </button>
+            ))}
+          </div>
+
+          <div className="film-target">
+            <strong>Film Length</strong>
+            <span>5 minutes</span>
+            <small>
+              300 seconds total production time
+            </small>
+          </div>
+
+          <div className="button-row">
+
             <button
+              className="primary"
+              type="button"
               onClick={buildBible}
-              disabled={
-                loadingBible ||
-                !story.trim()
-              }
-              style={{
-                padding: '14px 20px',
-                borderRadius: '10px',
-                border: 'none',
-                cursor:
-                  loadingBible ||
-                  !story.trim()
-                    ? 'not-allowed'
-                    : 'pointer',
-                fontWeight: 'bold'
-              }}
+              disabled={loadingBible}
             >
               {loadingBible
-                ? 'BUILDING...'
-                : 'BUILD CHARACTER & WORLD BIBLE'}
+                ? "BUILDING..."
+                : "BUILD CHARACTER & WORLD BIBLE"}
             </button>
 
             <button
+              className="secondary"
+              type="button"
               onClick={buildFilmPlan}
               disabled={
-                loadingScenes ||
-                !story.trim()
+                loadingPlan ||
+                !characterBible ||
+                !worldBible
               }
-              style={{
-                padding: '14px 20px',
-                borderRadius: '10px',
-                border: 'none',
-                cursor:
-                  loadingScenes ||
-                  !story.trim()
-                    ? 'not-allowed'
-                    : 'pointer',
-                fontWeight: 'bold'
-              }}
             >
-              {loadingScenes
-                ? 'BUILDING...'
-                : 'BUILD FILM PLAN'}
+              {loadingPlan
+                ? "BUILDING..."
+                : "BUILD FILM PLAN"}
             </button>
+
           </div>
 
-          {message && (
-            <div
-              style={{
-                marginTop: '20px',
-                padding: '12px',
-                borderRadius: '8px',
-                background: '#132013',
-                border: '1px solid #294529',
-                color: '#b8e6b8'
-              }}
-            >
-              {message}
-            </div>
-          )}
-
           {error && (
-            <div
-              style={{
-                marginTop: '20px',
-                padding: '12px',
-                borderRadius: '8px',
-                background: '#241313',
-                border: '1px solid #522222',
-                color: '#ffb4b4'
-              }}
-            >
+            <div className="error">
               {error}
             </div>
           )}
         </section>
 
-        {renderCharacterBible()}
+        {/* CHARACTER BIBLE */}
+        {characterBible && (
+          <section className="card">
+            <h2>Character Bible</h2>
 
-        {renderWorldBible()}
-
-        {scenes.length > 0 && (
-          <section className="panel">
-            <h2>Film Plan</h2>
-
-            <p className="section-description">
-              {scenes.length} scenes x{' '}
-              {clipDuration} seconds ={' '}
-              {scenes.length * clipDuration}{' '}
-              seconds planned.
+            <p className="description">
+              These character rules will keep the cast
+              consistent.
             </p>
 
-            <div
-              style={{
-                display: 'flex',
-                gap: '12px',
-                flexWrap: 'wrap',
-                marginBottom: '25px'
-              }}
-            >
-              <button
-                onClick={generateAllScenes}
-                disabled={
-                  generatingScene !== null
-                }
-                style={{
-                  padding: '14px 20px',
-                  borderRadius: '10px',
-                  border: '1px solid #733',
-                  background: '#241010',
-                  color: '#fff',
-                  cursor:
-                    generatingScene !== null
-                      ? 'not-allowed'
-                      : 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                GENERATE ALL SCENES
-              </button>
+            {(characterBible.characters || []).map(
+              (character) => (
+                <div
+                  className="character"
+                  key={character.id}
+                >
+                  <h3>{character.role}</h3>
+
+                  <p>
+                    {character.description}
+                  </p>
+
+                  <p>
+                    <strong>Appearance:</strong>{" "}
+                    {character.appearance}
+                  </p>
+
+                  <p>
+                    <strong>Clothing:</strong>{" "}
+                    {character.clothing}
+                  </p>
+
+                  <p>
+                    <strong>Personality:</strong>{" "}
+                    {character.personality}
+                  </p>
+
+                  <p>
+                    <strong>Continuity:</strong>{" "}
+                    {character.continuity}
+                  </p>
+                </div>
+              )
+            )}
+
+            <h3>Character Continuity Rules</h3>
+
+            <ul>
+              {(
+                characterBible.globalCharacterRules ||
+                []
+              ).map((rule, index) => (
+                <li key={index}>
+                  {rule}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* WORLD BIBLE */}
+        {worldBible && (
+          <section className="card">
+            <h2>World Bible</h2>
+
+            <p className="description">
+              These rules keep the film&apos;s world
+              visually consistent.
+            </p>
+
+            <h3>LOCATION</h3>
+            <p>
+              {worldBible.primaryLocation}
+            </p>
+
+            <h3>EVENT</h3>
+            <p>
+              {worldBible.primaryEvent}
+            </p>
+
+            <h3>TIME</h3>
+            <p>
+              {worldBible.timeOfDay}
+            </p>
+
+            <h3>WEATHER</h3>
+            <p>
+              {worldBible.weather}
+            </p>
+
+            {worldBible.environment && (
+              <>
+                <h3>LIGHTING</h3>
+                <p>
+                  {worldBible.environment.lighting}
+                </p>
+
+                <h3>ARCHITECTURE</h3>
+                <p>
+                  {worldBible.environment.architecture}
+                </p>
+
+                <h3>INTERIOR DESIGN</h3>
+                <p>
+                  {worldBible.environment.interiorDesign}
+                </p>
+
+                <h3>OUTDOOR ENVIRONMENT</h3>
+                <p>
+                  {worldBible.environment.outdoorEnvironment}
+                </p>
+
+                <h3>ATMOSPHERE</h3>
+                <p>
+                  {worldBible.environment.atmosphere}
+                </p>
+              </>
+            )}
+
+            <h3>World Continuity Rules</h3>
+
+            <ul>
+              {(worldBible.globalWorldRules || []).map(
+                (rule, index) => (
+                  <li key={index}>
+                    {rule}
+                  </li>
+                )
+              )}
+            </ul>
+          </section>
+        )}
+
+        {/* FILM PLAN */}
+        {filmPlan && (
+          <section className="card">
+
+            <h2>Film Plan</h2>
+
+            <div className="plan-summary">
+              <strong>
+                {filmPlan.sceneCount} scenes ×{" "}
+                {filmPlan.sceneDuration} seconds ={" "}
+                {filmPlan.duration} seconds planned
+              </strong>
+
+              <span>
+                5-minute film
+              </span>
             </div>
 
-            {scenes.map(function (scene) {
-              return (
-                <div
-                  key={scene.id}
-                  style={{
-                    background: '#111',
-                    border: '1px solid #292929',
-                    borderRadius: '12px',
-                    padding: '20px',
-                    marginBottom: '18px'
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent:
-                        'space-between',
-                      gap: '15px',
-                      flexWrap: 'wrap'
-                    }}
+            <div className="zero-credit">
+              ZERO-CREDIT TEST — Runway has not
+              been called and no credits have been used.
+            </div>
+
+            <div className="structure-box">
+              <h3>Film Structure</h3>
+
+              <p>
+                Opening → Setup → Development →
+                Conflict → Climax → Resolution
+              </p>
+
+              <p>
+                <strong>
+                  Total scenes:
+                </strong>{" "}
+                {filmPlan.sceneCount}
+              </p>
+
+              <p>
+                <strong>
+                  Clip length:
+                </strong>{" "}
+                {filmPlan.sceneDuration} seconds
+              </p>
+
+              <p>
+                <strong>
+                  Total duration:
+                </strong>{" "}
+                {filmPlan.duration} seconds
+              </p>
+
+              <p>
+                <strong>
+                  Format:
+                </strong>{" "}
+                9:16 vertical
+              </p>
+            </div>
+
+            <div className="scene-list">
+
+              {(filmPlan.scenes || []).map(
+                (scene) => (
+                  <article
+                    className="scene"
+                    key={scene.sceneNumber}
                   >
-                    <div>
-                      <h3
-                        style={{
-                          marginTop: 0
-                        }}
-                      >
-                        Scene {scene.id}:{' '}
+
+                    <div className="scene-header">
+
+                      <h3>
+                        Scene{" "}
+                        {scene.sceneNumber}:{" "}
                         {scene.title}
                       </h3>
 
-                      <p
-                        style={{
-                          color: '#aaa'
-                        }}
-                      >
-                        {scene.purpose}
-                      </p>
-
-                      <p
-                        style={{
-                          color: '#777'
-                        }}
-                      >
-                        Duration:{' '}
+                      <span>
                         {scene.duration} seconds
-                      </p>
+                      </span>
+
                     </div>
+
+                    <p className="phase">
+                      {scene.phase}
+                    </p>
+
+                    <p>
+                      <strong>
+                        Action:
+                      </strong>{" "}
+                      {scene.action}
+                    </p>
+
+                    <p>
+                      <strong>
+                        Emotion:
+                      </strong>{" "}
+                      {scene.emotion}
+                    </p>
+
+                    <p>
+                      <strong>
+                        Camera:
+                      </strong>{" "}
+                      {scene.camera}
+                    </p>
+
+                    <p>
+                      <strong>
+                        Location:
+                      </strong>{" "}
+                      {scene.location}
+                    </p>
+
+                    <p>
+                      <strong>
+                        Runway Prompt:
+                      </strong>{" "}
+                      {scene.runwayPrompt}
+                    </p>
 
                     <button
-                      onClick={function () {
-                        generateScene(scene);
-                      }}
-                      disabled={
-                        generatingScene !== null
-                      }
-                      style={{
-                        height: 'fit-content',
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        cursor:
-                          generatingScene !== null
-                            ? 'not-allowed'
-                            : 'pointer',
-                        fontWeight: 'bold'
-                      }}
+                      type="button"
+                      className="generate-disabled"
+                      disabled
                     >
-                      {generatingScene ===
-                      scene.id
-                        ? 'GENERATING...'
-                        : 'GENERATE SCENE ' +
-                          scene.id}
+                      GENERATE SCENE{" "}
+                      {scene.sceneNumber}
                     </button>
-                  </div>
 
-                  {sceneVideos[scene.id] && (
-                    <div
-                      style={{
-                        marginTop: '20px'
-                      }}
-                    >
-                      <video
-                        src={
-                          sceneVideos[scene.id]
-                        }
-                        controls
-                        playsInline
-                        style={{
-                          width: '100%',
-                          maxWidth: '420px',
-                          borderRadius: '10px'
-                        }}
-                      />
+                  </article>
+                )
+              )}
 
-                      <p>
-                        <a
-                          href={
-                            sceneVideos[scene.id]
-                          }
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{
-                            color: '#fff'
-                          }}
-                        >
-                          Open Scene {scene.id}
-                        </a>
-                      </p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            </div>
+
+            <button
+              type="button"
+              className="generate-all-disabled"
+              disabled
+            >
+              GENERATE ALL 30 SCENES
+            </button>
+
           </section>
         )}
-      </div>
+
+      </main>
+
+      <style>{`
+
+        * {
+          box-sizing: border-box;
+        }
+
+        body {
+          margin: 0;
+          font-family:
+            Inter,
+            Arial,
+            sans-serif;
+
+          background:
+            radial-gradient(
+              circle at top,
+              #18243a 0%,
+              #090d16 45%,
+              #05070c 100%
+            );
+
+          color: #f4f7fb;
+        }
+
+        button,
+        textarea {
+          font: inherit;
+        }
+
+        .app {
+          min-height: 100vh;
+        }
+
+        .hero {
+          padding:
+            56px
+            20px
+            44px;
+
+          background:
+            linear-gradient(
+              135deg,
+              rgba(39, 64, 102, 0.9),
+              rgba(9, 13, 22, 0.95)
+            );
+
+          border-bottom:
+            1px solid
+            rgba(255,255,255,0.08);
+        }
+
+        .hero-inner {
+          width:
+            min(1100px, 100%);
+
+          margin:
+            0 auto;
+        }
+
+        .hero h1 {
+          margin: 0;
+
+          font-size:
+            clamp(
+              2rem,
+              5vw,
+              4rem
+            );
+
+          letter-spacing:
+            0.04em;
+        }
+
+        .hero p {
+          margin:
+            10px 0 4px;
+
+          font-size:
+            1.3rem;
+
+          color:
+            #dce6f7;
+        }
+
+        .hero span {
+          color:
+            #9eb4d4;
+        }
+
+        .container {
+          width:
+            min(
+              1100px,
+              calc(100% - 32px)
+            );
+
+          margin:
+            32px auto 80px;
+        }
+
+        .card {
+          margin-bottom:
+            24px;
+
+          padding:
+            28px;
+
+          border-radius:
+            18px;
+
+          background:
+            rgba(
+              15,
+              22,
+              35,
+              0.92
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.09
+            );
+
+          box-shadow:
+            0 20px 60px
+            rgba(
+              0,
+              0,
+              0,
+              0.25
+            );
+        }
+
+        .card h2 {
+          margin-top: 0;
+          font-size: 1.8rem;
+        }
+
+        .card h3 {
+          margin-top: 24px;
+        }
+
+        label {
+          display: block;
+
+          margin:
+            20px 0 8px;
+
+          font-weight: 700;
+        }
+
+        textarea {
+          width: 100%;
+
+          resize: vertical;
+
+          padding: 14px;
+
+          border-radius: 12px;
+
+          border:
+            1px solid
+            #334158;
+
+          background:
+            #080d16;
+
+          color: white;
+
+          outline: none;
+        }
+
+        textarea:focus {
+          border-color:
+            #7ea5dc;
+        }
+
+        .options {
+          display: flex;
+
+          flex-wrap: wrap;
+
+          gap: 10px;
+        }
+
+        .option {
+          border:
+            1px solid
+            #34435b;
+
+          background:
+            #0b111d;
+
+          color:
+            #dce6f7;
+
+          padding:
+            10px 16px;
+
+          border-radius:
+            999px;
+
+          cursor: pointer;
+        }
+
+        .option.active {
+          background:
+            #dce6f7;
+
+          color:
+            #0a101b;
+
+          border-color:
+            #dce6f7;
+        }
+
+        .film-target {
+          display: flex;
+
+          flex-direction: column;
+
+          gap: 4px;
+
+          margin-top: 24px;
+
+          padding: 16px;
+
+          border-radius: 12px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.045
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.08
+            );
+        }
+
+        .film-target strong {
+          font-size: 1.15rem;
+        }
+
+        .film-target span {
+          color:
+            #dce6f7;
+
+          font-size: 1.05rem;
+        }
+
+        .film-target small {
+          color:
+            #91a2bb;
+        }
+
+        .button-row {
+          display: flex;
+
+          flex-wrap: wrap;
+
+          gap: 12px;
+
+          margin-top: 26px;
+        }
+
+        .primary,
+        .secondary,
+        .generate-disabled,
+        .generate-all-disabled {
+          border: 0;
+
+          border-radius: 10px;
+
+          padding:
+            13px 18px;
+
+          font-weight: 800;
+        }
+
+        .primary {
+          background:
+            #eef4ff;
+
+          color:
+            #08101d;
+
+          cursor:
+            pointer;
+        }
+
+        .secondary {
+          background:
+            #2a3952;
+
+          color: white;
+
+          cursor:
+            pointer;
+        }
+
+        .primary:disabled,
+        .secondary:disabled {
+          opacity: 0.5;
+
+          cursor:
+            not-allowed;
+        }
+
+        .error {
+          margin-top: 18px;
+
+          padding:
+            12px 14px;
+
+          border-radius:
+            10px;
+
+          background:
+            rgba(
+              180,
+              50,
+              50,
+              0.16
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              100,
+              100,
+              0.25
+            );
+
+          color:
+            #ffb4b4;
+        }
+
+        .description {
+          color:
+            #9eb0c9;
+        }
+
+        .character {
+          margin:
+            20px 0;
+
+          padding:
+            18px;
+
+          border-radius:
+            12px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.035
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.06
+            );
+        }
+
+        .character h3 {
+          margin-top: 0;
+        }
+
+        p,
+        li {
+          line-height:
+            1.65;
+
+          color:
+            #d6deeb;
+        }
+
+        ul {
+          padding-left:
+            22px;
+        }
+
+        .plan-summary {
+          display: flex;
+
+          flex-direction: column;
+
+          gap: 5px;
+
+          padding: 16px;
+
+          margin:
+            16px 0;
+
+          border-radius:
+            12px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.045
+            );
+
+          font-size:
+            1.1rem;
+        }
+
+        .plan-summary span {
+          color:
+            #9eb4d4;
+        }
+
+        .zero-credit {
+          margin-bottom:
+            20px;
+
+          padding:
+            12px 14px;
+
+          border-radius:
+            10px;
+
+          background:
+            rgba(
+              80,
+              170,
+              120,
+              0.12
+            );
+
+          border:
+            1px solid
+            rgba(
+              100,
+              200,
+              140,
+              0.25
+            );
+
+          color:
+            #a9e6bc;
+
+          font-weight:
+            700;
+        }
+
+        .structure-box {
+          margin-bottom:
+            24px;
+
+          padding:
+            18px;
+
+          border-radius:
+            12px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.035
+            );
+
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.07
+            );
+        }
+
+        .structure-box h3 {
+          margin-top: 0;
+        }
+
+        .scene-list {
+          display: grid;
+
+          gap: 16px;
+        }
+
+        .scene {
+          padding:
+            20px;
+
+          border-radius:
+            14px;
+
+          background:
+            #0a101b;
+
+          border:
+            1px solid
+            #25334a;
+        }
+
+        .scene-header {
+          display: flex;
+
+          justify-content:
+            space-between;
+
+          gap: 16px;
+
+          align-items:
+            center;
+        }
+
+        .scene-header h3 {
+          margin: 0;
+        }
+
+        .scene-header span {
+          white-space:
+            nowrap;
+
+          color:
+            #9eb4d4;
+
+          font-weight:
+            700;
+        }
+
+        .phase {
+          display:
+            inline-block;
+
+          padding:
+            5px 9px;
+
+          border-radius:
+            999px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.06
+            );
+
+          color:
+            #b7c9e2;
+
+          font-size:
+            0.85rem;
+
+          font-weight:
+            700;
+        }
+
+        .generate-disabled,
+        .generate-all-disabled {
+          background:
+            #202b3c;
+
+          color:
+            #8190a7;
+
+          cursor:
+            not-allowed;
+
+          margin-top:
+            8px;
+        }
+
+        .generate-all-disabled {
+          width: 100%;
+
+          margin-top:
+            22px;
+
+          padding:
+            16px;
+        }
+
+        @media (max-width: 700px) {
+
+          .card {
+            padding:
+              20px;
+          }
+
+          .scene-header {
+            align-items:
+              flex-start;
+
+            flex-direction:
+              column;
+          }
+
+          .button-row {
+            flex-direction:
+              column;
+          }
+
+          .primary,
+          .secondary {
+            width:
+              100%;
+          }
+        }
+
+      `}</style>
     </div>
   );
 }
