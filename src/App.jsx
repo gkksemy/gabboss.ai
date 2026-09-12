@@ -2225,4 +2225,3 @@ function renderValue(value) {
 }
 
 export default App;
-```
