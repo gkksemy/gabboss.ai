@@ -1,3 +1,4 @@
+```jsx
 import { useState } from "react";
 
 const DEFAULT_STORY =
@@ -18,12 +19,24 @@ function App() {
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [loadingQueue, setLoadingQueue] = useState(false);
 
+  const [testGenerating, setTestGenerating] = useState(false);
+  const [testStatus, setTestStatus] = useState("READY");
+  const [testProgress, setTestProgress] = useState(0);
+  const [testTaskId, setTestTaskId] = useState("");
+  const [testVideoUrl, setTestVideoUrl] = useState("");
+  const [runwayApiCalls, setRunwayApiCalls] = useState(0);
+  const [creditsUsed, setCreditsUsed] = useState(0);
+
   const [error, setError] = useState("");
 
   async function buildBible() {
     setError("");
     setFilmPlan(null);
     setGenerationQueue(null);
+    setTestVideoUrl("");
+    setTestStatus("READY");
+    setTestProgress(0);
+    setTestTaskId("");
 
     if (!story.trim()) {
       setError("Please enter a story idea.");
@@ -76,6 +89,10 @@ function App() {
   async function buildFilmPlan() {
     setError("");
     setGenerationQueue(null);
+    setTestVideoUrl("");
+    setTestStatus("READY");
+    setTestProgress(0);
+    setTestTaskId("");
 
     if (!characterBible || !worldBible) {
       setError(
@@ -171,6 +188,13 @@ function App() {
       }
 
       setGenerationQueue(data.queue);
+
+      setTestVideoUrl("");
+      setTestStatus("READY");
+      setTestProgress(0);
+      setTestTaskId("");
+      setRunwayApiCalls(0);
+      setCreditsUsed(0);
     } catch (err) {
       setError(
         err.message ||
@@ -181,11 +205,243 @@ function App() {
     }
   }
 
+  async function generateTestSceneOne() {
+    setError("");
+    setTestVideoUrl("");
+    setTestTaskId("");
+    setTestProgress(0);
+    setTestStatus("STARTING");
+    setRunwayApiCalls(0);
+    setCreditsUsed(0);
+
+    if (!filmPlan) {
+      setError(
+        "Build the 5-Minute Film Plan first."
+      );
+      setTestStatus("ERROR");
+      return;
+    }
+
+    const scenes = Array.isArray(
+      filmPlan.scenes
+    )
+      ? filmPlan.scenes
+      : [];
+
+    if (!scenes.length) {
+      setError(
+        "No scenes were found in the film plan."
+      );
+      setTestStatus("ERROR");
+      return;
+    }
+
+    const scene = scenes[0];
+
+    if (!scene) {
+      setError(
+        "Scene 1 could not be found."
+      );
+      setTestStatus("ERROR");
+      return;
+    }
+
+    const prompt =
+      scene.runwayPrompt ||
+      buildFallbackRunwayPrompt(
+        scene,
+        filmPlan,
+        characterBible,
+        worldBible
+      );
+
+    if (!prompt) {
+      setError(
+        "Scene 1 does not contain a usable Runway prompt."
+      );
+      setTestStatus("ERROR");
+      return;
+    }
+
+    setTestGenerating(true);
+
+    try {
+      setTestStatus(
+        "CALLING RUNWAY"
+      );
+
+      const response = await fetch(
+        "/api/generate",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            prompt: prompt,
+            duration: 10
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "Runway generation request failed."
+        );
+      }
+
+      if (!data.success || !data.taskId) {
+        throw new Error(
+          data.error ||
+            "Runway did not return a task ID."
+        );
+      }
+
+      setRunwayApiCalls(1);
+      setTestTaskId(data.taskId);
+      setTestStatus("GENERATING");
+      setTestProgress(5);
+
+      await pollTestScene(
+        data.taskId
+      );
+    } catch (err) {
+      setTestStatus("FAILED");
+      setError(
+        err.message ||
+          "Scene 1 generation failed."
+      );
+      setTestGenerating(false);
+    }
+  }
+
+  async function pollTestScene(taskId) {
+    let attempts = 0;
+    const maxAttempts = 120;
+
+    while (attempts < maxAttempts) {
+      attempts += 1;
+
+      try {
+        const response = await fetch(
+          "/api/status?taskId=" +
+            encodeURIComponent(taskId)
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Failed to check Runway status."
+          );
+        }
+
+        if (
+          typeof data.progress ===
+          "number"
+        ) {
+          setTestProgress(
+            Math.max(
+              5,
+              Math.min(
+                99,
+                data.progress
+              )
+            )
+          );
+        }
+
+        if (
+          data.state === "success" ||
+          data.status === "SUCCEEDED"
+        ) {
+          if (!data.video_url && !data.videoUrl) {
+            throw new Error(
+              "Runway finished, but no video URL was returned."
+            );
+          }
+
+          setTestVideoUrl(
+            data.video_url ||
+              data.videoUrl
+          );
+
+          setTestProgress(100);
+          setTestStatus("SUCCEEDED");
+
+          if (
+            typeof data.creditsUsed ===
+            "number"
+          ) {
+            setCreditsUsed(
+              data.creditsUsed
+            );
+          } else if (
+            typeof data.credits ===
+            "number"
+          ) {
+            setCreditsUsed(
+              data.credits
+            );
+          }
+
+          setTestGenerating(false);
+          return;
+        }
+
+        if (
+          data.state === "fail" ||
+          data.status === "FAILED"
+        ) {
+          throw new Error(
+            data.failReason ||
+              data.error ||
+              "Runway generation failed."
+          );
+        }
+
+        setTestStatus(
+          data.status ||
+            "GENERATING"
+        );
+
+        await wait(5000);
+      } catch (err) {
+        setTestStatus("FAILED");
+        setError(
+          err.message ||
+            "Unable to check Scene 1 status."
+        );
+        setTestGenerating(false);
+        return;
+      }
+    }
+
+    setTestStatus("TIMEOUT");
+    setError(
+      "Scene 1 generation is taking longer than expected. Check the Runway task status before starting another generation."
+    );
+    setTestGenerating(false);
+  }
+
   function resetProject() {
     setCharacterBible(null);
     setWorldBible(null);
     setFilmPlan(null);
     setGenerationQueue(null);
+
+    setTestGenerating(false);
+    setTestStatus("READY");
+    setTestProgress(0);
+    setTestTaskId("");
+    setTestVideoUrl("");
+    setRunwayApiCalls(0);
+    setCreditsUsed(0);
+
     setError("");
   }
 
@@ -274,7 +530,7 @@ function App() {
               marginBottom: "6px"
             }}
           >
-            Zero-credit testing mode
+            Controlled Runway test mode
           </div>
 
           <div
@@ -284,10 +540,11 @@ function App() {
               fontSize: "14px"
             }}
           >
-            Story planning, Character Bible,
-            World Bible, Film Plan, and Generation
-            Queue are being tested without calling
-            Runway. Credits used: 0.
+            Your planning system remains fully
+            active. Runway testing is limited to
+            Scene 1 only. No other scene will be
+            generated until we verify the first
+            result.
           </div>
         </div>
 
@@ -455,6 +712,10 @@ function App() {
                   );
                   setFilmPlan(null);
                   setGenerationQueue(null);
+                  setTestVideoUrl("");
+                  setTestStatus("READY");
+                  setTestProgress(0);
+                  setTestTaskId("");
                 }}
                 style={{
                   width: "100%",
@@ -803,9 +1064,8 @@ function App() {
               }}
             >
               Organize every scene into a production
-              queue before any video generation takes
-              place. This step uses zero Runway
-              credits.
+              queue before video generation. This
+              step itself uses zero Runway credits.
             </p>
 
             <button
@@ -868,7 +1128,7 @@ function App() {
                 fontSize: "24px"
               }}
             >
-              Video Generation
+              Video Generation Test
             </h2>
 
             <p
@@ -878,46 +1138,346 @@ function App() {
                 marginBottom: "20px"
               }}
             >
-              The production queue is ready. Runway
-              remains disabled until you explicitly
-              authorize video generation.
+              Your Runway credits are now available.
+              We will test only Scene 1 first. This
+              creates one 10-second video and does
+              not start Scenes 2–30.
             </p>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(150px, 1fr))",
+                gap: "12px",
+                marginBottom: "20px"
+              }}
+            >
+              <InfoBox
+                label="Test Scene"
+                value="Scene 1 only"
+              />
+
+              <InfoBox
+                label="Duration"
+                value="10 seconds"
+              />
+
+              <InfoBox
+                label="Runway Calls"
+                value={String(
+                  runwayApiCalls
+                )}
+              />
+
+              <InfoBox
+                label="Credits Used"
+                value={String(
+                  creditsUsed
+                )}
+              />
+            </div>
 
             <button
               type="button"
-              disabled
+              onClick={generateTestSceneOne}
+              disabled={testGenerating}
               style={{
                 width: "100%",
-                border: "1px solid #333",
+                border: "none",
                 borderRadius: "12px",
-                padding: "16px",
-                background: "#0b0b0b",
-                color: "#555",
+                padding: "17px",
+                background:
+                  testGenerating
+                    ? "#333"
+                    : "#fff",
+                color:
+                  testGenerating
+                    ? "#888"
+                    : "#000",
                 fontWeight: 800,
-                fontSize: "15px",
-                cursor: "not-allowed"
+                fontSize: "16px",
+                cursor: testGenerating
+                  ? "not-allowed"
+                  : "pointer"
               }}
             >
-              Runway Generation — Waiting for Credits
+              {testGenerating
+                ? "Generating Scene 1..."
+                : "Generate Test Scene 1"}
             </button>
 
             <div
               style={{
-                marginTop: "14px",
-                textAlign: "center",
-                color: "#666",
-                fontSize: "13px"
+                marginTop: "18px",
+                background: "#080808",
+                border: "1px solid #292929",
+                borderRadius: "14px",
+                padding: "16px"
               }}
             >
-              Runway API calls: 0
-              <br />
-              Credits used: 0
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  marginBottom: "10px"
+                }}
+              >
+                <span
+                  style={{
+                    color: "#777",
+                    fontSize: "12px",
+                    letterSpacing: "0.8px"
+                  }}
+                >
+                  TEST STATUS
+                </span>
+
+                <span
+                  style={{
+                    color:
+                      testStatus ===
+                      "SUCCEEDED"
+                        ? "#9be49b"
+                        : testStatus ===
+                          "FAILED"
+                        ? "#ff9b9b"
+                        : "#aaa",
+                    fontWeight: 800,
+                    fontSize: "12px"
+                  }}
+                >
+                  {testStatus}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  height: "8px",
+                  background: "#202020",
+                  borderRadius: "999px",
+                  overflow: "hidden"
+                }}
+              >
+                <div
+                  style={{
+                    width:
+                      String(
+                        testProgress
+                      ) + "%",
+                    height: "100%",
+                    background: "#fff",
+                    transition:
+                      "width 0.5s ease"
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
+                  color: "#666",
+                  fontSize: "12px",
+                  marginTop: "9px"
+                }}
+              >
+                Progress: {testProgress}%
+              </div>
+
+              {testTaskId && (
+                <div
+                  style={{
+                    marginTop: "12px",
+                    color: "#666",
+                    fontSize: "11px",
+                    wordBreak: "break-all"
+                  }}
+                >
+                  Task ID: {testTaskId}
+                </div>
+              )}
             </div>
+
+            {testVideoUrl && (
+              <div
+                style={{
+                  marginTop: "24px",
+                  background: "#080808",
+                  border: "1px solid #292929",
+                  borderRadius: "16px",
+                  padding: "18px"
+                }}
+              >
+                <div
+                  style={{
+                    color: "#777",
+                    fontSize: "12px",
+                    letterSpacing: "1px",
+                    marginBottom: "12px"
+                  }}
+                >
+                  SCENE 1 RESULT
+                </div>
+
+                <h3
+                  style={{
+                    margin: "0 0 16px",
+                    fontSize: "20px"
+                  }}
+                >
+                  Your 10-Second Test Video
+                </h3>
+
+                <video
+                  src={testVideoUrl}
+                  controls
+                  playsInline
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    maxWidth: "500px",
+                    maxHeight: "700px",
+                    margin: "0 auto",
+                    background: "#000",
+                    borderRadius: "12px"
+                  }}
+                />
+
+                <div
+                  style={{
+                    marginTop: "16px",
+                    padding: "14px",
+                    background: "#142014",
+                    border: "1px solid #294329",
+                    borderRadius: "12px",
+                    color: "#9be49b",
+                    lineHeight: 1.5,
+                    fontSize: "13px",
+                    textAlign: "center"
+                  }}
+                >
+                  Scene 1 completed successfully.
+                  <br />
+                  No additional scenes were
+                  generated.
+                </div>
+              </div>
+            )}
+
+            {!testVideoUrl &&
+              testStatus === "READY" && (
+                <div
+                  style={{
+                    marginTop: "18px",
+                    padding: "14px",
+                    background: "#111",
+                    border: "1px solid #252525",
+                    borderRadius: "12px",
+                    color: "#777",
+                    fontSize: "13px",
+                    textAlign: "center"
+                  }}
+                >
+                  Ready to generate Scene 1.
+                  Scenes 2–30 will remain untouched.
+                </div>
+              )}
           </section>
         )}
       </div>
     </div>
   );
+}
+
+function buildFallbackRunwayPrompt(
+  scene,
+  filmPlan,
+  characterBible,
+  worldBible
+) {
+  const parts = [];
+
+  if (scene && scene.action) {
+    parts.push(
+      String(scene.action)
+    );
+  }
+
+  if (scene && scene.camera) {
+    parts.push(
+      "Camera: " +
+        String(scene.camera)
+    );
+  }
+
+  if (scene && scene.lighting) {
+    parts.push(
+      "Lighting: " +
+        String(scene.lighting)
+    );
+  }
+
+  if (scene && scene.atmosphere) {
+    parts.push(
+      "Atmosphere: " +
+        String(scene.atmosphere)
+    );
+  }
+
+  if (scene && scene.emotion) {
+    parts.push(
+      "Emotion: " +
+        String(scene.emotion)
+    );
+  }
+
+  if (
+    scene &&
+    scene.visualStyle
+  ) {
+    parts.push(
+      "Visual style: " +
+        String(scene.visualStyle)
+    );
+  }
+
+  if (
+    scene &&
+    scene.continuityInstructions
+  ) {
+    parts.push(
+      "Continuity: " +
+        String(
+          scene.continuityInstructions
+        )
+    );
+  }
+
+  if (filmPlan) {
+    parts.push(
+      "Create a cinematic vertical 9:16 video."
+    );
+  }
+
+  if (characterBible) {
+    parts.push(
+      "Maintain consistent character appearance."
+    );
+  }
+
+  if (worldBible) {
+    parts.push(
+      "Maintain consistent location and environment."
+    );
+  }
+
+  return parts.join(" ");
+}
+
+function wait(milliseconds) {
+  return new Promise(function (resolve) {
+    setTimeout(resolve, milliseconds);
+  });
 }
 
 function BibleCard(props) {
@@ -959,7 +1519,9 @@ function BibleCard(props) {
 function FilmPlanDisplay(props) {
   const filmPlan = props.filmPlan;
 
-  const scenes = Array.isArray(filmPlan.scenes)
+  const scenes = Array.isArray(
+    filmPlan.scenes
+  )
     ? filmPlan.scenes
     : [];
 
@@ -1076,7 +1638,8 @@ function FilmPlanDisplay(props) {
           return (
             <SceneCard
               key={
-                scene.sceneNumber || index
+                scene.sceneNumber ||
+                index
               }
               scene={scene}
               index={index}
@@ -1196,22 +1759,30 @@ function GenerationQueueDisplay(props) {
       >
         <InfoBox
           label="Scenes"
-          value={String(queue.totalScenes)}
+          value={String(
+            queue.totalScenes
+          )}
         />
 
         <InfoBox
           label="Waiting"
-          value={String(queue.waitingScenes)}
+          value={String(
+            queue.waitingScenes
+          )}
         />
 
         <InfoBox
           label="Completed"
-          value={String(queue.completedScenes)}
+          value={String(
+            queue.completedScenes
+          )}
         />
 
         <InfoBox
           label="Credits"
-          value={String(queue.creditsUsed)}
+          value={String(
+            queue.creditsUsed
+          )}
         />
       </div>
 
@@ -1232,11 +1803,11 @@ function GenerationQueueDisplay(props) {
             color: "#fff"
           }}
         >
-          Zero-credit status:
+          Queue status:
         </strong>{" "}
         {queue.safety &&
         queue.safety.zeroCreditMode
-          ? "Runway has not been called. All scene jobs are waiting."
+          ? "Runway has not been called by the queue builder. All scene jobs remain waiting."
           : "Queue created."}
       </div>
 
@@ -1335,7 +1906,8 @@ function GenerationQueueDisplay(props) {
                   fontWeight: 700
                 }}
               >
-                {job.status || "WAITING"}
+                {job.status ||
+                  "WAITING"}
               </div>
             </div>
           );
@@ -1400,7 +1972,8 @@ function SceneCard(props) {
               }}
             >
               {scene.title ||
-                "Scene " + (index + 1)}
+                "Scene " +
+                  (index + 1)}
             </div>
 
             {scene.phase && (
@@ -1423,7 +1996,9 @@ function SceneCard(props) {
             fontSize: "12px"
           }}
         >
-          {String(scene.duration || 10) + "s"}
+          {String(
+            scene.duration || 10
+          ) + "s"}
         </div>
       </div>
 
@@ -1650,3 +2225,4 @@ function renderValue(value) {
 }
 
 export default App;
+```
