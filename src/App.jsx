@@ -20,7 +20,59 @@ export default function App() {
   const [generatingAll, setGeneratingAll] = useState(false);
   const [allProgress, setAllProgress] = useState(0);
 
+  const [characterBible, setCharacterBible] = useState(null);
+  const [worldBible, setWorldBible] = useState(null);
+  const [buildingBible, setBuildingBible] = useState(false);
+
   const intervalRef = useRef(null);
+
+  // --------------------------------------------------
+  // BUILD CHARACTER + WORLD BIBLE
+  // --------------------------------------------------
+
+  const buildBible = async () => {
+    if (!story.trim()) {
+      alert('Please enter your story first.');
+      return;
+    }
+
+    setBuildingBible(true);
+    setErrorMsg('');
+    setCharacterBible(null);
+    setWorldBible(null);
+
+    try {
+      const response = await fetch('/api/bible', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          story,
+          characters,
+          style
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+          'Failed to create the Character and World Bible.'
+        );
+      }
+
+      setCharacterBible(data.characterBible);
+      setWorldBible(data.worldBible);
+
+    } catch (error) {
+      console.error(error);
+      setErrorMsg(error.message);
+    } finally {
+      setBuildingBible(false);
+    }
+  };
 
   // --------------------------------------------------
   // BUILD FILM PLAN
@@ -55,10 +107,14 @@ export default function App() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to build film plan.');
+        throw new Error(
+          data.error ||
+          'Failed to build film plan.'
+        );
       }
 
       setScenes(data.scenes || []);
+
     } catch (error) {
       console.error(error);
       setErrorMsg(error.message);
@@ -97,14 +153,17 @@ export default function App() {
 
       if (!response.ok) {
         throw new Error(
-          data.error || JSON.stringify(data)
+          data.error ||
+          JSON.stringify(data)
         );
       }
 
       const taskId = data.taskId;
 
       if (!taskId) {
-        throw new Error('Runway did not return a task ID.');
+        throw new Error(
+          'Runway did not return a task ID.'
+        );
       }
 
       setCurrentTaskId(taskId);
@@ -145,11 +204,15 @@ export default function App() {
           if (data.state === 'success') {
             clearInterval(intervalRef.current);
 
-            const url = data.video_url || data.videoUrl;
+            const url =
+              data.video_url ||
+              data.videoUrl;
 
             if (!url) {
               reject(
-                new Error('Runway completed but no video URL was returned.')
+                new Error(
+                  'Runway completed but no video URL was returned.'
+                )
               );
               return;
             }
@@ -204,12 +267,11 @@ export default function App() {
             );
           }
 
-          // Prevent an endless browser poll.
           if (attempts >= 180) {
             clearInterval(intervalRef.current);
 
             const timeoutError =
-              'Runway is taking longer than expected. Check the task again later.';
+              'Runway is taking longer than expected.';
 
             setStatus('fail');
             setErrorMsg(timeoutError);
@@ -218,7 +280,10 @@ export default function App() {
           }
 
         } catch (error) {
-          console.error('Status check error:', error);
+          console.error(
+            'Status check error:',
+            error
+          );
 
           clearInterval(intervalRef.current);
 
@@ -246,7 +311,7 @@ export default function App() {
     const confirmed = window.confirm(
       `This will generate ${scenes.length} Runway clips sequentially.\n\n` +
       `Each clip is ${duration} seconds.\n\n` +
-      `Total generated footage: ${scenes.length * duration} seconds.\n\n` +
+      `Total footage: ${scenes.length * duration} seconds.\n\n` +
       `Runway credits will be used.\n\n` +
       `Continue?`
     );
@@ -268,7 +333,9 @@ export default function App() {
         await generateScene(scene);
 
         setAllProgress(
-          Math.round(((i + 1) / scenes.length) * 100)
+          Math.round(
+            ((i + 1) / scenes.length) * 100
+          )
         );
       }
 
@@ -276,7 +343,10 @@ export default function App() {
       setStatus('done');
 
     } catch (error) {
-      console.error('Generate all error:', error);
+      console.error(
+        'Generate all error:',
+        error
+      );
 
       setErrorMsg(
         error.message ||
@@ -345,7 +415,9 @@ export default function App() {
 
             <textarea
               value={story}
-              onChange={e => setStory(e.target.value)}
+              onChange={e =>
+                setStory(e.target.value)
+              }
               placeholder="Tell us the story you want to turn into a film..."
               className="w-full h-32 p-4 bg-black border border-zinc-700 rounded-xl text-white outline-none"
             />
@@ -362,8 +434,10 @@ export default function App() {
 
             <input
               value={characters}
-              onChange={e => setCharacters(e.target.value)}
-              placeholder="Example: Marcus, a 30-year-old African man wearing a black leather jacket"
+              onChange={e =>
+                setCharacters(e.target.value)
+              }
+              placeholder="Example: Marcus, 30-year-old man wearing a black leather jacket"
               className="w-full p-4 bg-black border border-zinc-700 rounded-xl text-white outline-none"
             />
 
@@ -379,7 +453,9 @@ export default function App() {
 
             <select
               value={style}
-              onChange={e => setStyle(e.target.value)}
+              onChange={e =>
+                setStyle(e.target.value)
+              }
               className="w-full p-4 bg-black border border-zinc-700 rounded-xl text-white"
             >
               <option value="cinematic">
@@ -412,7 +488,9 @@ export default function App() {
 
                 <button
                   key={seconds}
-                  onClick={() => setDuration(seconds)}
+                  onClick={() =>
+                    setDuration(seconds)
+                  }
                   className={
                     `px-5 py-3 rounded-xl font-semibold ${
                       duration === seconds
@@ -430,7 +508,19 @@ export default function App() {
 
           </div>
 
-          {/* BUILD */}
+          {/* BIBLE BUTTON */}
+
+          <button
+            onClick={buildBible}
+            disabled={buildingBible}
+            className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 font-bold rounded-xl disabled:opacity-50"
+          >
+            {buildingBible
+              ? 'BUILDING CHARACTER & WORLD BIBLE...'
+              : 'BUILD CHARACTER & WORLD BIBLE'}
+          </button>
+
+          {/* FILM PLAN BUTTON */}
 
           <button
             onClick={buildFilmPlan}
@@ -457,6 +547,177 @@ export default function App() {
             <p className="text-red-400 text-sm mt-1 break-all">
               {errorMsg}
             </p>
+
+          </div>
+
+        )}
+
+        {/* CHARACTER BIBLE */}
+
+        {characterBible && (
+
+          <div className="mt-8 bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+
+            <h2 className="text-2xl font-bold">
+              Character Bible
+            </h2>
+
+            <p className="text-gray-400 text-sm mt-1">
+              These character rules will keep the cast consistent.
+            </p>
+
+            <div className="mt-5 space-y-4">
+
+              {characterBible.characters.map(
+                character => (
+
+                  <div
+                    key={character.id}
+                    className="bg-black rounded-xl p-5"
+                  >
+
+                    <p className="text-xs text-gray-500 uppercase">
+                      {character.role}
+                    </p>
+
+                    <p className="text-white font-semibold mt-2">
+                      {character.description}
+                    </p>
+
+                    <p className="text-gray-400 text-sm mt-3">
+                      {character.continuity}
+                    </p>
+
+                  </div>
+
+                )
+              )}
+
+            </div>
+
+            <div className="mt-5">
+
+              <p className="text-sm font-semibold mb-2">
+                Character Continuity Rules
+              </p>
+
+              <ul className="text-sm text-gray-400 space-y-1">
+
+                {characterBible.globalCharacterRules.map(
+                  (rule, index) => (
+                    <li key={index}>
+                      • {rule}
+                    </li>
+                  )
+                )}
+
+              </ul>
+
+            </div>
+
+          </div>
+
+        )}
+
+        {/* WORLD BIBLE */}
+
+        {worldBible && (
+
+          <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+
+            <h2 className="text-2xl font-bold">
+              World Bible
+            </h2>
+
+            <p className="text-gray-400 text-sm mt-1">
+              These rules keep the film's world visually consistent.
+            </p>
+
+            <div className="mt-5 bg-black rounded-xl p-5">
+
+              <p className="text-gray-300 text-sm">
+                {worldBible.setting}
+              </p>
+
+            </div>
+
+            <div className="mt-5 grid md:grid-cols-2 gap-4">
+
+              <div className="bg-black rounded-xl p-4">
+                <p className="text-xs text-gray-500">
+                  LOCATION
+                </p>
+                <p className="text-sm text-gray-300 mt-2">
+                  {worldBible.environment.location}
+                </p>
+              </div>
+
+              <div className="bg-black rounded-xl p-4">
+                <p className="text-xs text-gray-500">
+                  TIME
+                </p>
+                <p className="text-sm text-gray-300 mt-2">
+                  {worldBible.environment.time}
+                </p>
+              </div>
+
+              <div className="bg-black rounded-xl p-4">
+                <p className="text-xs text-gray-500">
+                  WEATHER
+                </p>
+                <p className="text-sm text-gray-300 mt-2">
+                  {worldBible.environment.weather}
+                </p>
+              </div>
+
+              <div className="bg-black rounded-xl p-4">
+                <p className="text-xs text-gray-500">
+                  LIGHTING
+                </p>
+                <p className="text-sm text-gray-300 mt-2">
+                  {worldBible.environment.lighting}
+                </p>
+              </div>
+
+              <div className="bg-black rounded-xl p-4">
+                <p className="text-xs text-gray-500">
+                  ARCHITECTURE
+                </p>
+                <p className="text-sm text-gray-300 mt-2">
+                  {worldBible.environment.architecture}
+                </p>
+              </div>
+
+              <div className="bg-black rounded-xl p-4">
+                <p className="text-xs text-gray-500">
+                  ATMOSPHERE
+                </p>
+                <p className="text-sm text-gray-300 mt-2">
+                  {worldBible.environment.atmosphere}
+                </p>
+              </div>
+
+            </div>
+
+            <div className="mt-5">
+
+              <p className="text-sm font-semibold mb-2">
+                World Continuity Rules
+              </p>
+
+              <ul className="text-sm text-gray-400 space-y-1">
+
+                {worldBible.globalWorldRules.map(
+                  (rule, index) => (
+                    <li key={index}>
+                      • {rule}
+                    </li>
+                  )
+                )}
+
+              </ul>
+
+            </div>
 
           </div>
 
@@ -528,7 +789,7 @@ export default function App() {
 
             )}
 
-            {/* SCENE CARDS */}
+            {/* SCENES */}
 
             <div className="space-y-5">
 
@@ -571,8 +832,6 @@ export default function App() {
 
                     </div>
 
-                    {/* PROMPT */}
-
                     <div className="mt-4 bg-black rounded-xl p-4">
 
                       <p className="text-xs text-gray-500 mb-2">
@@ -585,10 +844,10 @@ export default function App() {
 
                     </div>
 
-                    {/* SCENE BUTTON */}
-
                     <button
-                      onClick={() => generateScene(scene)}
+                      onClick={() =>
+                        generateScene(scene)
+                      }
                       disabled={
                         generatingAll ||
                         isActive
@@ -601,8 +860,6 @@ export default function App() {
                         ? `GENERATE SCENE ${scene.id} AGAIN`
                         : `GENERATE SCENE ${scene.id}`}
                     </button>
-
-                    {/* GENERATED VIDEO */}
 
                     {generated?.videoUrl && (
 
@@ -628,27 +885,6 @@ export default function App() {
               })}
 
             </div>
-
-          </div>
-
-        )}
-
-        {/* CURRENT VIDEO */}
-
-        {videoUrl && !generatedScenes[activeScene] && (
-
-          <div className="mt-8">
-
-            <h2 className="text-xl font-bold mb-3">
-              Latest Generated Clip
-            </h2>
-
-            <video
-              src={videoUrl}
-              controls
-              autoPlay
-              className="w-full rounded-2xl"
-            />
 
           </div>
 
