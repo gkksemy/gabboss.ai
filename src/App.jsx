@@ -12,14 +12,18 @@ function App() {
   const [characterBible, setCharacterBible] = useState(null);
   const [worldBible, setWorldBible] = useState(null);
   const [filmPlan, setFilmPlan] = useState(null);
+  const [generationQueue, setGenerationQueue] = useState(null);
 
   const [loadingBible, setLoadingBible] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState(false);
+  const [loadingQueue, setLoadingQueue] = useState(false);
+
   const [error, setError] = useState("");
 
   async function buildBible() {
     setError("");
     setFilmPlan(null);
+    setGenerationQueue(null);
 
     if (!story.trim()) {
       setError("Please enter a story idea.");
@@ -71,6 +75,7 @@ function App() {
 
   async function buildFilmPlan() {
     setError("");
+    setGenerationQueue(null);
 
     if (!characterBible || !worldBible) {
       setError(
@@ -123,10 +128,64 @@ function App() {
     }
   }
 
+  async function buildGenerationQueue() {
+    setError("");
+
+    if (!filmPlan) {
+      setError(
+        "Build the 5-Minute Film Plan first."
+      );
+      return;
+    }
+
+    setLoadingQueue(true);
+
+    try {
+      const response = await fetch(
+        "/api/generation-queue",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            filmPlan: filmPlan
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "Failed to build the Generation Queue."
+        );
+      }
+
+      if (!data.success) {
+        throw new Error(
+          data.error ||
+            "Generation Queue creation failed."
+        );
+      }
+
+      setGenerationQueue(data.queue);
+    } catch (err) {
+      setError(
+        err.message ||
+          "Something went wrong."
+      );
+    } finally {
+      setLoadingQueue(false);
+    }
+  }
+
   function resetProject() {
     setCharacterBible(null);
     setWorldBible(null);
     setFilmPlan(null);
+    setGenerationQueue(null);
     setError("");
   }
 
@@ -225,10 +284,10 @@ function App() {
               fontSize: "14px"
             }}
           >
-            This version does not call Runway.
-            We are testing the story, Bible, and
-            5-minute film-plan structure first.
-            No video-generation credits are used.
+            Story planning, Character Bible,
+            World Bible, Film Plan, and Generation
+            Queue are being tested without calling
+            Runway. Credits used: 0.
           </div>
         </div>
 
@@ -365,9 +424,11 @@ function App() {
                 <option value="cinematic">
                   Cinematic Live Action
                 </option>
+
                 <option value="realistic">
                   Realistic
                 </option>
+
                 <option value="cartoon">
                   Animated
                 </option>
@@ -392,6 +453,8 @@ function App() {
                   setClipLength(
                     Number(e.target.value)
                   );
+                  setFilmPlan(null);
+                  setGenerationQueue(null);
                 }}
                 style={{
                   width: "100%",
@@ -406,6 +469,7 @@ function App() {
                 <option value={10}>
                   10 seconds — 30 scenes
                 </option>
+
                 <option value={5}>
                   5 seconds — 60 scenes
                 </option>
@@ -546,14 +610,11 @@ function App() {
             >
               {Object.entries(characterBible).map(
                 function (entry) {
-                  const key = entry[0];
-                  const value = entry[1];
-
                   return (
                     <BibleCard
-                      key={key}
-                      title={formatTitle(key)}
-                      value={value}
+                      key={entry[0]}
+                      title={formatTitle(entry[0])}
+                      value={entry[1]}
                     />
                   );
                 }
@@ -608,14 +669,11 @@ function App() {
             >
               {Object.entries(worldBible).map(
                 function (entry) {
-                  const key = entry[0];
-                  const value = entry[1];
-
                   return (
                     <BibleCard
-                      key={key}
-                      title={formatTitle(key)}
-                      value={value}
+                      key={entry[0]}
+                      title={formatTitle(entry[0])}
+                      value={entry[1]}
                     />
                   );
                 }
@@ -713,7 +771,8 @@ function App() {
                 "linear-gradient(135deg, #111, #191919)",
               border: "1px solid #333",
               borderRadius: "20px",
-              padding: "26px"
+              padding: "26px",
+              marginBottom: "24px"
             }}
           >
             <div
@@ -733,6 +792,82 @@ function App() {
                 fontSize: "24px"
               }}
             >
+              Generation Queue
+            </h2>
+
+            <p
+              style={{
+                color: "#999",
+                lineHeight: 1.6,
+                marginBottom: "20px"
+              }}
+            >
+              Organize every scene into a production
+              queue before any video generation takes
+              place. This step uses zero Runway
+              credits.
+            </p>
+
+            <button
+              type="button"
+              onClick={buildGenerationQueue}
+              disabled={loadingQueue}
+              style={{
+                width: "100%",
+                border: "none",
+                borderRadius: "12px",
+                padding: "16px",
+                background:
+                  loadingQueue ? "#333" : "#fff",
+                color:
+                  loadingQueue ? "#888" : "#000",
+                fontWeight: 800,
+                fontSize: "16px",
+                cursor: loadingQueue
+                  ? "not-allowed"
+                  : "pointer"
+              }}
+            >
+              {loadingQueue
+                ? "Building Generation Queue..."
+                : "Build Generation Queue"}
+            </button>
+
+            {generationQueue && (
+              <GenerationQueueDisplay
+                queue={generationQueue}
+              />
+            )}
+          </section>
+        )}
+
+        {generationQueue && (
+          <section
+            style={{
+              background:
+                "linear-gradient(135deg, #111, #191919)",
+              border: "1px solid #333",
+              borderRadius: "20px",
+              padding: "26px"
+            }}
+          >
+            <div
+              style={{
+                color: "#777",
+                fontSize: "12px",
+                letterSpacing: "1px",
+                marginBottom: "8px"
+              }}
+            >
+              STEP 5
+            </div>
+
+            <h2
+              style={{
+                margin: "0 0 10px",
+                fontSize: "24px"
+              }}
+            >
               Video Generation
             </h2>
 
@@ -743,10 +878,9 @@ function App() {
                 marginBottom: "20px"
               }}
             >
-              The film plan is ready for video
-              generation. Runway generation is
-              intentionally disabled during structural
-              testing so no credits are used.
+              The production queue is ready. Runway
+              remains disabled until you explicitly
+              authorize video generation.
             </p>
 
             <button
@@ -941,7 +1075,9 @@ function FilmPlanDisplay(props) {
         {scenes.map(function (scene, index) {
           return (
             <SceneCard
-              key={scene.id || index}
+              key={
+                scene.sceneNumber || index
+              }
               scene={scene}
               index={index}
             />
@@ -981,6 +1117,230 @@ function FilmPlanDisplay(props) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function GenerationQueueDisplay(props) {
+  const queue = props.queue;
+
+  const jobs = Array.isArray(queue.jobs)
+    ? queue.jobs
+    : [];
+
+  return (
+    <div
+      style={{
+        marginTop: "24px",
+        background: "#080808",
+        border: "1px solid #292929",
+        borderRadius: "16px",
+        padding: "20px"
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "12px",
+          flexWrap: "wrap",
+          marginBottom: "18px"
+        }}
+      >
+        <div>
+          <div
+            style={{
+              color: "#777",
+              fontSize: "11px",
+              letterSpacing: "1px",
+              marginBottom: "5px"
+            }}
+          >
+            PRODUCTION QUEUE
+          </div>
+
+          <h3
+            style={{
+              margin: 0,
+              fontSize: "22px"
+            }}
+          >
+            {queue.totalScenes} Scene Jobs
+          </h3>
+        </div>
+
+        <div
+          style={{
+            padding: "7px 12px",
+            borderRadius: "999px",
+            background: "#142014",
+            border: "1px solid #294329",
+            color: "#9be49b",
+            fontSize: "12px",
+            fontWeight: 700
+          }}
+        >
+          {queue.status || "READY"}
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "repeat(auto-fit, minmax(140px, 1fr))",
+          gap: "12px",
+          marginBottom: "22px"
+        }}
+      >
+        <InfoBox
+          label="Scenes"
+          value={String(queue.totalScenes)}
+        />
+
+        <InfoBox
+          label="Waiting"
+          value={String(queue.waitingScenes)}
+        />
+
+        <InfoBox
+          label="Completed"
+          value={String(queue.completedScenes)}
+        />
+
+        <InfoBox
+          label="Credits"
+          value={String(queue.creditsUsed)}
+        />
+      </div>
+
+      <div
+        style={{
+          background: "#111",
+          border: "1px solid #252525",
+          borderRadius: "12px",
+          padding: "14px",
+          marginBottom: "20px",
+          color: "#aaa",
+          lineHeight: 1.6,
+          fontSize: "14px"
+        }}
+      >
+        <strong
+          style={{
+            color: "#fff"
+          }}
+        >
+          Zero-credit status:
+        </strong>{" "}
+        {queue.safety &&
+        queue.safety.zeroCreditMode
+          ? "Runway has not been called. All scene jobs are waiting."
+          : "Queue created."}
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gap: "10px"
+        }}
+      >
+        {jobs.map(function (job, index) {
+          return (
+            <div
+              key={
+                job.jobId ||
+                "job-" + index
+              }
+              style={{
+                display: "flex",
+                justifyContent:
+                  "space-between",
+                alignItems: "center",
+                gap: "12px",
+                padding: "13px 15px",
+                background: "#101010",
+                border: "1px solid #252525",
+                borderRadius: "10px"
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  minWidth: 0
+                }}
+              >
+                <div
+                  style={{
+                    width: "30px",
+                    height: "30px",
+                    flexShrink: 0,
+                    borderRadius: "8px",
+                    background: "#202020",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 800,
+                    fontSize: "12px"
+                  }}
+                >
+                  {job.sceneNumber}
+                </div>
+
+                <div
+                  style={{
+                    minWidth: 0
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis"
+                    }}
+                  >
+                    {job.title ||
+                      "Scene " +
+                        job.sceneNumber}
+                  </div>
+
+                  <div
+                    style={{
+                      color: "#666",
+                      fontSize: "12px",
+                      marginTop: "3px"
+                    }}
+                  >
+                    {String(
+                      job.duration ||
+                        queue.sceneDuration ||
+                        10
+                    ) + " seconds"}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  flexShrink: 0,
+                  padding: "5px 9px",
+                  borderRadius: "999px",
+                  border: "1px solid #444",
+                  color: "#aaa",
+                  fontSize: "11px",
+                  fontWeight: 700
+                }}
+              >
+                {job.status || "WAITING"}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
