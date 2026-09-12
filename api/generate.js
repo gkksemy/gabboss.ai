@@ -23,7 +23,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         promptText: String(prompt).slice(0, 1000),
-        model: 'gen3a_turbo',
+        model: 'gen4.5',
         duration: 5,
         ratio: '1280:720'
       })
