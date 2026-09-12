@@ -1,742 +1,924 @@
-// api/film-plan.js
-// Creates a detailed 5-minute Film Plan.
-// ZERO Runway credits are used here.
-
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
+  if (req.method !== 'POST') {
     return res.status(405).json({
-      success: false,
-      error: "Method not allowed"
+      error: 'Method not allowed'
     });
   }
 
   try {
-    const body =
-      req.body && typeof req.body === "object"
-        ? req.body
-        : {};
+    const {
+      story,
+      duration,
+      clipLength,
+      characterBible,
+      worldBible
+    } = req.body || {};
 
-    const story =
-      typeof body.story === "string"
-        ? body.story.trim()
-        : "";
-
-    const videoDuration =
-      Number(body.duration) || 300;
-
-    const requestedClipLength =
-      Number(body.clipLength) || 10;
-
-    const characterBible =
-      body.characterBible &&
-      typeof body.characterBible === "object"
-        ? body.characterBible
-        : null;
-
-    const worldBible =
-      body.worldBible &&
-      typeof body.worldBible === "object"
-        ? body.worldBible
-        : null;
-
-    if (!story) {
+    if (!story || !story.trim()) {
       return res.status(400).json({
-        success: false,
-        error: "Please enter a story."
+        error: 'Story is required.'
       });
     }
 
     if (!characterBible) {
       return res.status(400).json({
-        success: false,
-        error: "Character Bible is required."
+        error: 'Character Bible is required.'
       });
     }
 
     if (!worldBible) {
       return res.status(400).json({
-        success: false,
-        error: "World Bible is required."
+        error: 'World Bible is required.'
       });
     }
 
-    if (videoDuration !== 300) {
+    const filmDuration = Number(duration);
+
+    if (filmDuration !== 300) {
       return res.status(400).json({
-        success: false,
-        error:
-          "The current Film Plan is configured for a 5-minute film."
+        error: 'Film duration must be 300 seconds.'
       });
     }
 
     const sceneDuration =
-      requestedClipLength === 5 ||
-      requestedClipLength === 10
-        ? requestedClipLength
-        : 10;
+      Number(clipLength) === 10 ? 10 : 5;
 
-    const sceneCount =
-      Math.ceil(videoDuration / sceneDuration);
-
-    const lowerStory = story.toLowerCase();
-
-    const isThanksgiving =
-      lowerStory.includes("thanksgiving");
-
-    const isFamily =
-      lowerStory.includes("family") ||
-      lowerStory.includes("dinner");
-
-    /*
-      Safely extract Character Bible data.
-    */
-
-    const rawCharacters =
-      Array.isArray(characterBible.characters)
-        ? characterBible.characters
-        : [];
-
-    const characterReferences = rawCharacters.map(
-      function (character, index) {
-        if (
-          !character ||
-          typeof character !== "object"
-        ) {
-          return {
-            id: "character-" + (index + 1),
-            role: "Character " + (index + 1),
-            description: "",
-            appearance: "",
-            clothing: ""
-          };
-        }
-
-        return {
-          id:
-            character.id ||
-            "character-" + (index + 1),
-
-          role:
-            character.role ||
-            "Character " + (index + 1),
-
-          description:
-            character.description || "",
-
-          appearance:
-            character.appearance || "",
-
-          clothing:
-            character.clothing || ""
-        };
-      }
+    const sceneCount = Math.ceil(
+      filmDuration / sceneDuration
     );
 
-    /*
-      Safely extract World Bible data.
+    const storyLower = story.toLowerCase();
 
-      Different versions of the Bible endpoint may store
-      environment information in slightly different places.
-    */
+    const isThanksgivingFamilyStory =
+      storyLower.includes('thanksgiving') ||
+      storyLower.includes('family dinner') ||
+      storyLower.includes('family gathering') ||
+      storyLower.includes('family reunion');
 
-    const environment =
-      worldBible.environment &&
-      typeof worldBible.environment === "object"
-        ? worldBible.environment
-        : {};
+    const thanksgivingBeats = [
+      {
+        phase: 'Opening',
+        title: 'Arrival',
+        location: 'Outside the family home',
+        setting: 'Late afternoon, Thanksgiving day, cars arriving and warm lights visible inside',
+        action: 'Family members arrive at the home carrying food, gifts, and personal belongings.',
+        emotion: 'Warm anticipation'
+      },
+      {
+        phase: 'Opening',
+        title: 'Entering the Home',
+        location: 'Family home entrance',
+        setting: 'Warm interior lighting, coats and bags being placed near the entrance',
+        action: 'Family members enter the home and begin settling in.',
+        emotion: 'Comfort and familiarity'
+      },
+      {
+        phase: 'Opening',
+        title: 'Family Greeting',
+        location: 'Living room',
+        setting: 'Comfortable family living room filled with warm Thanksgiving decorations',
+        action: 'Family members greet one another with hugs, handshakes, smiles, and playful comments.',
+        emotion: 'Joy'
+      },
+      {
+        phase: 'Setup',
+        title: 'Kitchen Preparation',
+        location: 'Family kitchen',
+        setting: 'Busy kitchen with Thanksgiving food being prepared',
+        action: 'Family members cook, season food, check dishes, and move around the kitchen.',
+        emotion: 'Energetic warmth'
+      },
+      {
+        phase: 'Setup',
+        title: 'Setting the Table',
+        location: 'Dining room',
+        setting: 'Thanksgiving table being carefully prepared with plates, glasses, candles, and food',
+        action: 'Family members place plates, silverware, drinks, and dishes on the table.',
+        emotion: 'Togetherness'
+      },
+      {
+        phase: 'Setup',
+        title: 'Family Conversation',
+        location: 'Kitchen and dining area',
+        setting: 'Family members casually talking while finishing preparations',
+        action: 'Several family members talk and laugh about everyday life.',
+        emotion: 'Relaxed happiness'
+      },
+      {
+        phase: 'Beginning',
+        title: 'Dinner Begins',
+        location: 'Dining room',
+        setting: 'Full Thanksgiving table surrounded by family members',
+        action: 'Everyone sits down and the meal officially begins.',
+        emotion: 'Gratitude'
+      },
+      {
+        phase: 'Beginning',
+        title: 'Sharing Food',
+        location: 'Dining room',
+        setting: 'Food being passed around the Thanksgiving table',
+        action: 'Family members serve one another turkey, sides, vegetables, bread, and other dishes.',
+        emotion: 'Generosity'
+      },
+      {
+        phase: 'Beginning',
+        title: 'Laughter',
+        location: 'Dining room',
+        setting: 'Family enjoying dinner together',
+        action: 'Someone tells a funny story and the family bursts into genuine laughter.',
+        emotion: 'Joy'
+      },
+      {
+        phase: 'Development',
+        title: 'A Personal Memory',
+        location: 'Dining room',
+        setting: 'Family conversation becomes more personal',
+        action: 'One family member shares a meaningful memory from the past.',
+        emotion: 'Nostalgia'
+      },
+      {
+        phase: 'Development',
+        title: 'The Family Remembers',
+        location: 'Dining room',
+        setting: 'Family members reflecting on shared memories',
+        action: 'Several people add their own memories and stories.',
+        emotion: 'Nostalgia and affection'
+      },
+      {
+        phase: 'Development',
+        title: 'Main Character Reflects',
+        location: 'Dining room',
+        setting: 'The main character quietly observing the family',
+        action: 'The main character watches the family and becomes thoughtful.',
+        emotion: 'Reflection'
+      },
+      {
+        phase: 'Development',
+        title: 'Unexpected Conversation',
+        location: 'Dining room',
+        setting: 'Conversation shifts toward a more serious subject',
+        action: 'An unexpected topic changes the tone of the conversation.',
+        emotion: 'Uncertainty'
+      },
+      {
+        phase: 'Conflict',
+        title: 'Tension Appears',
+        location: 'Dining room',
+        setting: 'Family members become noticeably quieter',
+        action: 'A disagreement begins to develop during the conversation.',
+        emotion: 'Tension'
+      },
+      {
+        phase: 'Conflict',
+        title: 'The Argument',
+        location: 'Dining room',
+        setting: 'The Thanksgiving dinner table becomes tense',
+        action: 'Two family members openly disagree and emotions rise.',
+        emotion: 'Frustration'
+      },
+      {
+        phase: 'Conflict',
+        title: 'Silence',
+        location: 'Dining room',
+        setting: 'Everyone at the table becomes quiet after the argument',
+        action: 'The room falls silent as everyone processes what happened.',
+        emotion: 'Awkwardness'
+      },
+      {
+        phase: 'Turning Point',
+        title: 'Main Character Responds',
+        location: 'Dining room',
+        setting: 'The main character addresses the situation calmly',
+        action: 'The main character speaks honestly and attempts to bring the family together.',
+        emotion: 'Courage'
+      },
+      {
+        phase: 'Turning Point',
+        title: 'A Family Member Opens Up',
+        location: 'Dining room',
+        setting: 'Emotional conversation around the table',
+        action: 'A family member reveals feelings that have been kept hidden.',
+        emotion: 'Vulnerability'
+      },
+      {
+        phase: 'Turning Point',
+        title: 'Understanding',
+        location: 'Dining room',
+        setting: 'Family members begin listening to one another',
+        action: 'The family starts understanding the feelings behind the disagreement.',
+        emotion: 'Empathy'
+      },
+      {
+        phase: 'Turning Point',
+        title: 'The Mood Changes',
+        location: 'Dining room',
+        setting: 'The tension slowly begins to disappear',
+        action: 'Family members relax and begin reconnecting.',
+        emotion: 'Relief'
+      },
+      {
+        phase: 'Resolution',
+        title: 'Shared Laughter Returns',
+        location: 'Dining room',
+        setting: 'Family members laughing together again',
+        action: 'Someone makes a lighthearted comment and genuine laughter returns.',
+        emotion: 'Joy'
+      },
+      {
+        phase: 'Resolution',
+        title: 'Gratitude',
+        location: 'Dining room',
+        setting: 'Family members reflecting on what they have',
+        action: 'Family members express gratitude for being together.',
+        emotion: 'Gratitude'
+      },
+      {
+        phase: 'Resolution',
+        title: 'Main Character Realizes Something',
+        location: 'Dining room',
+        setting: 'Quiet emotional moment during dinner',
+        action: 'The main character realizes the deeper meaning of family and forgiveness.',
+        emotion: 'Clarity'
+      },
+      {
+        phase: 'Resolution',
+        title: 'Emotional Connection',
+        location: 'Dining room',
+        setting: 'Family members sharing a sincere emotional moment',
+        action: 'The main character connects with another family member on a deeper level.',
+        emotion: 'Love'
+      },
+      {
+        phase: 'Resolution',
+        title: 'Family Reconnects',
+        location: 'Dining room',
+        setting: 'The family is comfortable and united again',
+        action: 'Family members reconnect through conversation, smiles, and shared memories.',
+        emotion: 'Connection'
+      },
+      {
+        phase: 'Resolution',
+        title: 'The Thanksgiving Moment',
+        location: 'Dining room',
+        setting: 'Warm family dinner with candles and soft lighting',
+        action: 'The family pauses together to appreciate the moment.',
+        emotion: 'Peace'
+      },
+      {
+        phase: 'Closing',
+        title: 'After Dinner',
+        location: 'Kitchen and dining room',
+        setting: 'Dinner is finished and dishes are being cleared',
+        action: 'Family members clean up together while continuing to talk and laugh.',
+        emotion: 'Contentment'
+      },
+      {
+        phase: 'Closing',
+        title: 'Evening Outside',
+        location: 'Front porch or backyard',
+        setting: 'Cool evening air with warm light coming from the house',
+        action: 'Family members spend time outside together after dinner.',
+        emotion: 'Peace'
+      },
+      {
+        phase: 'Closing',
+        title: 'Looking Back',
+        location: 'Outside the family home',
+        setting: 'Quiet evening atmosphere',
+        action: 'The main character looks back toward the house and reflects on the evening.',
+        emotion: 'Reflection'
+      },
+      {
+        phase: 'Closing',
+        title: 'Final Family Image',
+        location: 'Outside the family home',
+        setting: 'Family gathered together beneath warm evening lights',
+        action: 'The family shares one final peaceful moment together.',
+        emotion: 'Love and gratitude'
+      }
+    ];
 
-    const location =
-      worldBible.primaryLocation ||
-      environment.primaryLocation ||
-      "Established film location";
+    const genericBeats = [
+      {
+        phase: 'Opening',
+        title: 'Introduction',
+        location: 'Primary story location',
+        setting: 'Establishing environment',
+        action: 'Introduce the main character and establish the situation.',
+        emotion: 'Curiosity'
+      },
+      {
+        phase: 'Opening',
+        title: 'The World',
+        location: 'Primary story location',
+        setting: 'Detailed story environment',
+        action: 'Show the world surrounding the characters.',
+        emotion: 'Interest'
+      },
+      {
+        phase: 'Opening',
+        title: 'Daily Life',
+        location: 'Story location',
+        setting: 'Natural environment',
+        action: 'Show the characters interacting naturally with their environment.',
+        emotion: 'Calm'
+      },
+      {
+        phase: 'Opening',
+        title: 'Important Detail',
+        location: 'Story location',
+        setting: 'Focused visual moment',
+        action: 'Introduce an important object, person, or detail.',
+        emotion: 'Curiosity'
+      },
+      {
+        phase: 'Development',
+        title: 'First Change',
+        location: 'Story location',
+        setting: 'Situation begins changing',
+        action: 'Something changes and pushes the story forward.',
+        emotion: 'Uncertainty'
+      },
+      {
+        phase: 'Development',
+        title: 'Reaction',
+        location: 'Story location',
+        setting: 'Characters responding to the change',
+        action: 'The characters react to the developing situation.',
+        emotion: 'Concern'
+      },
+      {
+        phase: 'Development',
+        title: 'New Information',
+        location: 'Story location',
+        setting: 'Important discovery',
+        action: 'A new piece of information changes the characters understanding.',
+        emotion: 'Surprise'
+      },
+      {
+        phase: 'Development',
+        title: 'Decision',
+        location: 'Story location',
+        setting: 'Character facing a choice',
+        action: 'The main character makes an important decision.',
+        emotion: 'Determination'
+      },
+      {
+        phase: 'Development',
+        title: 'Pressure',
+        location: 'Story location',
+        setting: 'Increasing tension',
+        action: 'The situation becomes more difficult.',
+        emotion: 'Tension'
+      },
+      {
+        phase: 'Development',
+        title: 'Complication',
+        location: 'Story location',
+        setting: 'Problem becomes more serious',
+        action: 'A new complication makes the goal harder to achieve.',
+        emotion: 'Frustration'
+      },
+      {
+        phase: 'Conflict',
+        title: 'Confrontation',
+        location: 'Story location',
+        setting: 'Characters face the central conflict',
+        action: 'The main character confronts the central problem.',
+        emotion: 'Conflict'
+      },
+      {
+        phase: 'Conflict',
+        title: 'Escalation',
+        location: 'Story location',
+        setting: 'High tension',
+        action: 'The conflict becomes more intense.',
+        emotion: 'Fear'
+      },
+      {
+        phase: 'Conflict',
+        title: 'Setback',
+        location: 'Story location',
+        setting: 'Difficult situation',
+        action: 'The main character experiences a significant setback.',
+        emotion: 'Disappointment'
+      },
+      {
+        phase: 'Conflict',
+        title: 'Lowest Point',
+        location: 'Story location',
+        setting: 'Emotionally difficult moment',
+        action: 'The characters face their most difficult moment.',
+        emotion: 'Despair'
+      },
+      {
+        phase: 'Turning Point',
+        title: 'Realization',
+        location: 'Story location',
+        setting: 'Quiet realization',
+        action: 'The main character realizes what must be done.',
+        emotion: 'Clarity'
+      },
+      {
+        phase: 'Turning Point',
+        title: 'New Direction',
+        location: 'Story location',
+        setting: 'Momentum returns',
+        action: 'The main character chooses a new path.',
+        emotion: 'Hope'
+      },
+      {
+        phase: 'Turning Point',
+        title: 'Action',
+        location: 'Story location',
+        setting: 'Characters moving forward',
+        action: 'The characters begin acting on the new decision.',
+        emotion: 'Determination'
+      },
+      {
+        phase: 'Turning Point',
+        title: 'Challenge',
+        location: 'Story location',
+        setting: 'Final major obstacle',
+        action: 'The characters face one final major challenge.',
+        emotion: 'Tension'
+      },
+      {
+        phase: 'Resolution',
+        title: 'Breakthrough',
+        location: 'Story location',
+        setting: 'Conflict begins resolving',
+        action: 'The main character makes progress against the central problem.',
+        emotion: 'Relief'
+      },
+      {
+        phase: 'Resolution',
+        title: 'Resolution',
+        location: 'Story location',
+        setting: 'Conflict settling',
+        action: 'The central conflict begins to resolve.',
+        emotion: 'Relief'
+      },
+      {
+        phase: 'Resolution',
+        title: 'Understanding',
+        location: 'Story location',
+        setting: 'Characters reflecting',
+        action: 'The characters understand what the experience has taught them.',
+        emotion: 'Wisdom'
+      },
+      {
+        phase: 'Resolution',
+        title: 'Connection',
+        location: 'Story location',
+        setting: 'Emotional connection',
+        action: 'The characters reconnect or strengthen their relationship.',
+        emotion: 'Warmth'
+      },
+      {
+        phase: 'Resolution',
+        title: 'New Beginning',
+        location: 'Story location',
+        setting: 'Hopeful environment',
+        action: 'The characters begin moving into a new chapter.',
+        emotion: 'Hope'
+      },
+      {
+        phase: 'Closing',
+        title: 'Reflection',
+        location: 'Story location',
+        setting: 'Quiet reflective moment',
+        action: 'The main character reflects on everything that happened.',
+        emotion: 'Reflection'
+      },
+      {
+        phase: 'Closing',
+        title: 'Aftermath',
+        location: 'Story location',
+        setting: 'Story world after the conflict',
+        action: 'Show the consequences of the story.',
+        emotion: 'Peace'
+      },
+      {
+        phase: 'Closing',
+        title: 'Meaning',
+        location: 'Story location',
+        setting: 'Emotionally meaningful visual',
+        action: 'Reveal the deeper meaning of the experience.',
+        emotion: 'Insight'
+      },
+      {
+        phase: 'Closing',
+        title: 'Final Moment',
+        location: 'Story location',
+        setting: 'Cinematic final image',
+        action: 'Create a memorable final story moment.',
+        emotion: 'Emotion'
+      },
+      {
+        phase: 'Closing',
+        title: 'Final Image',
+        location: 'Story location',
+        setting: 'Beautiful cinematic closing shot',
+        action: 'End on a visually strong image that represents the story.',
+        emotion: 'Closure'
+      }
+    ];
 
-    const setting =
-      environment.mainSetting ||
-      worldBible.mainSetting ||
-      "Established film setting";
+    const beats = isThanksgivingFamilyStory
+      ? thanksgivingBeats
+      : genericBeats;
 
-    const lighting =
-      environment.lighting ||
-      worldBible.lighting ||
-      "Consistent cinematic lighting.";
+    const getAudioPlan = (beat, index) => {
+      const title = String(beat.title || '').toLowerCase();
+      const phase = String(beat.phase || '').toLowerCase();
+      const emotion = beat.emotion || 'natural emotion';
 
-    const atmosphere =
-      environment.atmosphere ||
-      worldBible.atmosphere ||
-      "Consistent cinematic atmosphere.";
+      let dialogue =
+        'Natural conversational dialogue only when needed. Keep dialogue short and realistic.';
 
-    const visualStyle =
-      characterBible.visualStyle ||
-      worldBible.visualStyle ||
-      "Cinematic live-action film.";
+      let voiceDirection =
+        'Natural human voice performance, conversational pacing, emotionally believable delivery.';
 
-    /*
-      STORY BEATS
-    */
+      let ambientSound =
+        'Natural room tone and environmental ambience matching the location.';
 
-    let storyBeats = [];
+      let soundEffects =
+        'Subtle realistic environmental sound effects synchronized with visible actions.';
 
-    if (isThanksgiving || isFamily) {
-      storyBeats = [
-        {
-          phase: "Opening",
-          title: "Arrival",
-          action:
-            "Establish the family home as the main character arrives for the gathering.",
-          emotion:
-            "Warm anticipation and familiarity.",
-          camera:
-            "Cinematic exterior establishing shot that naturally moves toward the home and follows the main character entering."
-        },
-        {
-          phase: "Opening",
-          title: "Entering the Home",
-          action:
-            "The main character enters the warmly prepared home and takes in the gathering.",
-          emotion:
-            "Comfort, nostalgia, and anticipation.",
-          camera:
-            "Smooth cinematic movement following the character through the entrance."
-        },
-        {
-          phase: "Opening",
-          title: "Family Greeting",
-          action:
-            "The main character is warmly greeted by family members.",
-          emotion:
-            "Affection and genuine family connection.",
-          camera:
-            "Medium cinematic shots focused on natural greetings and facial expressions."
-        },
-        {
-          phase: "Setup",
-          title: "Kitchen Preparation",
-          action:
-            "Family members continue preparing the meal while talking casually.",
-          emotion:
-            "Relaxed happiness and togetherness.",
-          camera:
-            "Slow cinematic movement through the kitchen showing food preparation and natural interactions."
-        },
-        {
-          phase: "Setup",
-          title: "Setting the Table",
-          action:
-            "The family prepares the dining table with plates, serving dishes, candles, and decorations.",
-          emotion:
-            "Anticipation and family teamwork.",
-          camera:
-            "Detailed close-ups of hands, dishes, food, and decorations followed by a wider family shot."
-        },
-        {
-          phase: "Setup",
-          title: "Family Conversation",
-          action:
-            "The family gathers near the dining area and begins talking about their lives and memories.",
-          emotion:
-            "Warmth and familiarity.",
-          camera:
-            "Natural alternating medium shots capturing reactions between family members."
-        },
-        {
-          phase: "Development",
-          title: "Dinner Begins",
-          action:
-            "Everyone sits around the table as the family meal begins.",
-          emotion:
-            "Joy and togetherness.",
-          camera:
-            "Wide cinematic shot of the complete table followed by intimate character shots."
-        },
-        {
-          phase: "Development",
-          title: "Sharing Food",
-          action:
-            "Family members pass food around the table and serve one another.",
-          emotion:
-            "Generosity and connection.",
-          camera:
-            "Close-ups of food being passed between characters with smooth cinematic transitions."
-        },
-        {
-          phase: "Development",
-          title: "Laughter",
-          action:
-            "A lighthearted family moment causes several members to laugh together.",
-          emotion:
-            "Joy and genuine amusement.",
-          camera:
-            "Natural reaction shots with subtle handheld cinematic movement."
-        },
-        {
-          phase: "Development",
-          title: "A Personal Memory",
-          action:
-            "A family member shares a meaningful memory from the past.",
-          emotion:
-            "Nostalgia and reflection.",
-          camera:
-            "Slow push-in toward the person speaking followed by reaction shots."
-        },
-        {
-          phase: "Development",
-          title: "The Family Remembers",
-          action:
-            "The conversation turns toward shared memories and experiences from previous years.",
-          emotion:
-            "Nostalgic warmth.",
-          camera:
-            "Intimate alternating close-ups emphasizing facial expressions."
-        },
-        {
-          phase: "Development",
-          title: "Main Character Reflects",
-          action:
-            "The main character becomes quieter while observing the family around the table.",
-          emotion:
-            "Reflection and appreciation.",
-          camera:
-            "Gentle cinematic close-up followed by a shallow-depth-of-field view of the family."
-        },
-        {
-          phase: "Development",
-          title: "Unexpected Conversation",
-          action:
-            "A more serious topic enters the family conversation and changes the mood.",
-          emotion:
-            "Curiosity and uncertainty.",
-          camera:
-            "Gradual transition from wide family coverage to tighter reaction shots."
-        },
-        {
-          phase: "Conflict",
-          title: "Tension Appears",
-          action:
-            "Two family members begin to disagree about the subject being discussed.",
-          emotion:
-            "Growing tension.",
-          camera:
-            "Tighter framing and slower camera movement emphasizing reactions."
-        },
-        {
-          phase: "Conflict",
-          title: "The Argument",
-          action:
-            "The disagreement becomes more emotionally direct while the others listen.",
-          emotion:
-            "Frustration and emotional discomfort.",
-          camera:
-            "Controlled shot-reverse-shot coverage."
-        },
-        {
-          phase: "Conflict",
-          title: "Silence",
-          action:
-            "The conversation suddenly becomes quiet as everyone processes what was said.",
-          emotion:
-            "Awkwardness and emotional weight.",
-          camera:
-            "Slow push-in with natural pauses and close reaction shots."
-        },
-        {
-          phase: "Conflict",
-          title: "Main Character Responds",
-          action:
-            "The main character calmly responds and attempts to bring the family back together.",
-          emotion:
-            "Courage, empathy, and sincerity.",
-          camera:
-            "Centered medium close-up followed by family reactions."
-        },
-        {
-          phase: "Conflict",
-          title: "A Family Member Opens Up",
-          action:
-            "Another family member reveals the deeper emotion behind the disagreement.",
-          emotion:
-            "Vulnerability and honesty.",
-          camera:
-            "Slow intimate close-up emphasizing realistic facial emotion."
-        },
-        {
-          phase: "Development",
-          title: "Understanding",
-          action:
-            "The family begins to understand each other's perspective.",
-          emotion:
-            "Relief and emotional connection.",
-          camera:
-            "Wider framing gradually reconnecting all characters within the same composition."
-        },
-        {
-          phase: "Development",
-          title: "The Mood Changes",
-          action:
-            "The tension begins to disappear as the family reconnects.",
-          emotion:
-            "Relief and renewed warmth.",
-          camera:
-            "Smooth movement returning to the wider family environment."
-        },
-        {
-          phase: "Development",
-          title: "Shared Laughter Returns",
-          action:
-            "A small humorous moment breaks the remaining tension and the family laughs again.",
-          emotion:
-            "Relief and happiness.",
-          camera:
-            "Natural reaction shots with subtle cinematic handheld movement."
-        },
-        {
-          phase: "Development",
-          title: "Gratitude",
-          action:
-            "The family pauses to express gratitude for being together.",
-          emotion:
-            "Sincerity and appreciation.",
-          camera:
-            "Warm table-wide composition followed by intimate character close-ups."
-        },
-        {
-          phase: "Climax",
-          title: "Main Character Realizes Something",
-          action:
-            "The main character realizes that the value of the evening is the family connection itself.",
-          emotion:
-            "Emotional realization.",
-          camera:
-            "Slow cinematic push-in toward the main character."
-        },
-        {
-          phase: "Climax",
-          title: "Emotional Connection",
-          action:
-            "The main character shares a sincere moment with a parent or important family member.",
-          emotion:
-            "Love, gratitude, and emotional closeness.",
-          camera:
-            "Intimate two-shot with soft cinematic lighting."
-        },
-        {
-          phase: "Climax",
-          title: "Family Reconnects",
-          action:
-            "The family comes together emotionally after the earlier disagreement.",
-          emotion:
-            "Forgiveness and unity.",
-          camera:
-            "Wide shot showing the whole family together followed by close reactions."
-        },
-        {
-          phase: "Climax",
-          title: "The Thanksgiving Moment",
-          action:
-            "The family shares a quiet meaningful moment around the table.",
-          emotion:
-            "Peace, gratitude, and togetherness.",
-          camera:
-            "Slow controlled cinematic movement around the table."
-        },
-        {
-          phase: "Resolution",
-          title: "After Dinner",
-          action:
-            "The family begins cleaning the table and naturally moves through the home.",
-          emotion:
-            "Relaxed happiness.",
-          camera:
-            "Natural observational movement through the dining area and kitchen."
-        },
-        {
-          phase: "Resolution",
-          title: "Evening Outside",
-          action:
-            "The main character briefly steps outside and looks back toward the warmly lit family home.",
-          emotion:
-            "Reflection and appreciation.",
-          camera:
-            "Cinematic exterior shot transitioning from the character to the glowing house."
-        },
-        {
-          phase: "Resolution",
-          title: "Looking Back",
-          action:
-            "The main character shares a final quiet moment with the family before the evening ends.",
-          emotion:
-            "Affection and gratitude.",
-          camera:
-            "Warm medium shot with the family gathered naturally together."
-        },
-        {
-          phase: "Ending",
-          title: "Final Family Image",
-          action:
-            "The family remains together inside the warmly lit home as evening settles into night.",
-          emotion:
-            "Peace, belonging, and emotional satisfaction.",
-          camera:
-            "Slow cinematic pullback from the family toward the warmly illuminated home."
-        }
-      ];
-    } else {
-      /*
-        Generic 30-scene structure for stories other than
-        the current Thanksgiving/family test.
-      */
+      let music =
+        'Subtle cinematic background music that supports the emotion without overpowering dialogue.';
 
-      storyBeats = [
-        ["Opening", "Establishing the World", "Introduce the main character, location, environment, and central situation.", "Curiosity and anticipation.", "Cinematic establishing movement."],
-        ["Opening", "The Situation", "Show the main character beginning the central situation of the story.", "Curiosity.", "Medium cinematic character coverage."],
-        ["Opening", "Relationships", "Introduce important relationships and supporting characters.", "Natural interpersonal connection.", "Alternating medium shots and reaction shots."],
-        ["Setup", "Story Progression", "Move the story forward through meaningful character action.", "Growing engagement.", "Dynamic cinematic movement."],
-        ["Setup", "Discovery", "Introduce an important discovery or development.", "Surprise and curiosity.", "Gradual push-in toward the important moment."],
-        ["Setup", "Complication", "Introduce a complication that changes the direction of the story.", "Concern and uncertainty.", "Tighter framing and controlled movement."],
-        ["Development", "Reaction", "Show the characters responding to the complication.", "Emotional reaction.", "Close reaction shots."],
-        ["Development", "Decision", "The main character makes an important decision.", "Determination.", "Focused cinematic close-up."],
-        ["Development", "Obstacle", "The main character encounters the central obstacle.", "Tension.", "More dramatic cinematic framing."],
-        ["Development", "Confrontation", "The characters confront the central problem.", "Emotional intensity.", "Shot-reverse-shot coverage."],
-        ["Development", "Pressure", "The situation becomes more difficult.", "Rising tension.", "Tighter close-ups."],
-        ["Development", "Lowest Point", "The characters face the most difficult moment so far.", "Doubt and emotional weight.", "Slow controlled movement."],
-        ["Development", "Realization", "The main character realizes what must be done.", "Clarity and determination.", "Slow push-in."],
-        ["Development", "New Direction", "The main character takes action based on the realization.", "Purpose.", "Forward-moving cinematic shot."],
-        ["Development", "Attempt", "The characters attempt to solve the central problem.", "Hope and uncertainty.", "Dynamic action coverage."],
-        ["Conflict", "Final Challenge", "The final major obstacle appears.", "High tension.", "Dramatic cinematic framing."],
-        ["Conflict", "Confrontation", "The main character directly faces the final challenge.", "Determination.", "Intimate close coverage."],
-        ["Climax", "Climactic Decision", "The main character makes the most important decision of the story.", "Maximum emotional intensity.", "Controlled cinematic push-in."],
-        ["Climax", "Turning Point", "The decision changes the situation.", "Release and transformation.", "Camera opens into a wider composition."],
-        ["Climax", "Consequence", "Show the immediate consequence of the climactic action.", "Emotional release.", "Natural cinematic observation."],
-        ["Resolution", "Aftermath", "The characters process what has happened.", "Reflection.", "Slow observational movement."],
-        ["Resolution", "Understanding", "The characters gain a clearer understanding of the situation.", "Relief.", "Warm medium shots."],
-        ["Resolution", "Connection", "Relationships begin to heal or strengthen.", "Warmth.", "Intimate character coverage."],
-        ["Resolution", "Moving Forward", "The characters begin moving into the next stage of their lives.", "Hope.", "Forward-moving cinematic shot."],
-        ["Resolution", "Quiet Moment", "Give the main character a quiet reflective moment.", "Peace.", "Slow cinematic close-up."],
-        ["Resolution", "Final Interaction", "Show one final meaningful interaction between important characters.", "Emotional closure.", "Warm two-shot."],
-        ["Ending", "Resolution", "Resolve the central story problem.", "Satisfaction.", "Wide cinematic composition."],
-        ["Ending", "Reflection", "Show what the experience has meant to the main character.", "Reflection and growth.", "Slow push-in."],
-        ["Ending", "Final Image", "Create a memorable final visual representing the meaning of the story.", "Emotional completion.", "Slow cinematic pullback."]
-      ].map(function (item) {
-        return {
-          phase: item[0],
-          title: item[1],
-          action: item[2],
-          emotion: item[3],
-          camera: item[4]
-        };
-      });
-    }
+      let mixNotes =
+        'Keep dialogue clear and centered. Ambience and music remain underneath dialogue. Avoid sudden volume changes.';
 
-    /*
-      Guarantee enough beats for the requested scene count.
-    */
+      if (
+        title.includes('arrival') ||
+        title.includes('entering') ||
+        title.includes('greeting')
+      ) {
+        dialogue =
+          'Short greetings, natural hellos, laughter, and casual family conversation.';
+        voiceDirection =
+          'Warm, friendly voices with natural overlapping conversation and relaxed delivery.';
+        ambientSound =
+          'Outdoor neighborhood ambience transitioning into warm interior household ambience.';
+        soundEffects =
+          'Car doors, footsteps, bags being carried, doors opening, hugs, clothing movement.';
+        music =
+          'Warm cinematic opening music with a gentle welcoming feeling.';
+      }
 
-    if (!Array.isArray(storyBeats) || storyBeats.length === 0) {
-      throw new Error(
-        "Unable to create story structure."
-      );
-    }
+      if (
+        title.includes('kitchen') ||
+        title.includes('food') ||
+        title.includes('table')
+      ) {
+        dialogue =
+          'Casual preparation-related conversation, short comments, questions, and playful remarks.';
+        voiceDirection =
+          'Energetic but natural family conversation with occasional laughter.';
+        ambientSound =
+          'Busy kitchen ambience, dishes, cooking activity, refrigerator and household sounds.';
+        soundEffects =
+          'Cutlery, plates, serving dishes, cooking utensils, footsteps, food preparation.';
+        music =
+          'Light warm instrumental music with a comfortable family feeling.';
+      }
+
+      if (
+        title.includes('laughter') ||
+        title.includes('shared laughter') ||
+        title.includes('joy')
+      ) {
+        dialogue =
+          'Natural jokes, playful comments, and spontaneous family laughter.';
+        voiceDirection =
+          'Relaxed conversational delivery followed by authentic laughter.';
+        ambientSound =
+          'Lively dining-room ambience with several family members interacting.';
+        soundEffects =
+          'Subtle table movement, glasses, plates, chairs, and natural gestures.';
+        music =
+          'Warm uplifting cinematic music with a gentle increase in energy.';
+      }
+
+      if (
+        title.includes('memory') ||
+        title.includes('remembers') ||
+        title.includes('reflection') ||
+        title.includes('realizes') ||
+        title.includes('looking back')
+      ) {
+        dialogue =
+          'Thoughtful personal dialogue with short pauses that allow the emotional moment to breathe.';
+        voiceDirection =
+          'Soft, sincere, reflective delivery with controlled emotion and natural pauses.';
+        ambientSound =
+          'Quiet environmental ambience with reduced background activity.';
+        soundEffects =
+          'Very subtle room movement and natural environmental details.';
+        music =
+          'Soft emotional cinematic score with restrained instrumentation.';
+      }
+
+      if (
+        phase.includes('conflict') ||
+        title.includes('tension') ||
+        title.includes('argument') ||
+        title.includes('confrontation') ||
+        title.includes('escalation')
+      ) {
+        dialogue =
+          'Short emotionally charged dialogue with realistic interruptions and pauses. Avoid theatrical speeches.';
+        voiceDirection =
+          'Emotionally tense but believable delivery. Voices should remain human and conversational.';
+        ambientSound =
+          'Reduced room ambience that allows the emotional tension to become more noticeable.';
+        soundEffects =
+          'Subtle chair movement, table movement, glass placement, footsteps, and natural physical reactions.';
+        music =
+          'Low restrained cinematic tension music. Avoid overpowering the dialogue.';
+        mixNotes =
+          'Prioritize dialogue clarity. Lower music during important lines. Preserve realistic pauses and room tone.';
+      }
+
+      if (
+        title.includes('silence') ||
+        title.includes('lowest point')
+      ) {
+        dialogue =
+          'Minimal or no dialogue. Allow silence to communicate the emotional weight of the scene.';
+        voiceDirection =
+          'If dialogue is present, use very quiet restrained delivery with meaningful pauses.';
+        ambientSound =
+          'Room tone should become clearly audible during the silence.';
+        soundEffects =
+          'Very subtle natural movements such as breathing, clothing, chair movement, or distant environmental sounds.';
+        music =
+          'Minimal emotional score or near-silence followed by a restrained musical texture.';
+        mixNotes =
+          'Do not fill every moment with music. Preserve intentional silence and natural room tone.';
+      }
+
+      if (
+        title.includes('opens up') ||
+        title.includes('understanding') ||
+        title.includes('connection') ||
+        title.includes('reconnects')
+      ) {
+        dialogue =
+          'Honest, emotionally open conversation with simple believable language.';
+        voiceDirection =
+          'Sincere and vulnerable delivery without exaggerated acting.';
+        ambientSound =
+          'Warm, calm environmental ambience with the surrounding family still subtly present.';
+        soundEffects =
+          'Very subtle natural movement and physical reactions.';
+        music =
+          'Warm emotional score that slowly becomes more hopeful.';
+        mixNotes =
+          'Dialogue remains dominant while music gently supports the emotional transition.';
+      }
+
+      if (
+        title.includes('gratitude') ||
+        title.includes('thanksgiving moment') ||
+        title.includes('new beginning') ||
+        title.includes('breakthrough')
+      ) {
+        dialogue =
+          'Short sincere statements expressing gratitude, hope, or emotional understanding.';
+        voiceDirection =
+          'Warm, sincere, emotionally grounded delivery.';
+        ambientSound =
+          'Peaceful environmental ambience with natural family activity in the background.';
+        soundEffects =
+          'Soft table sounds, movement, breathing, footsteps, and subtle environmental details.';
+        music =
+          'Hopeful cinematic music with gentle emotional lift.';
+      }
+
+      if (
+        title.includes('after dinner') ||
+        title.includes('evening outside') ||
+        title.includes('aftermath')
+      ) {
+        dialogue =
+          'Relaxed post-event conversation with occasional laughter and quiet personal comments.';
+        voiceDirection =
+          'Calm, comfortable voices with slower evening pacing.';
+        ambientSound =
+          'Evening outdoor ambience or quiet household ambience depending on location.';
+        soundEffects =
+          'Footsteps, doors, dishes, distant neighborhood sounds, wind, and subtle outdoor details.';
+        music =
+          'Gentle evening cinematic music with a peaceful reflective feeling.';
+      }
+
+      if (
+        title.includes('final family image') ||
+        title.includes('final image') ||
+        title.includes('final moment')
+      ) {
+        dialogue =
+          'Little or no dialogue. Let the final image communicate the emotional conclusion.';
+        voiceDirection =
+          'If narration is used, deliver one short reflective line with calm sincerity.';
+        ambientSound =
+          'Natural environmental ambience appropriate to the final location.';
+        soundEffects =
+          'Subtle environmental details only.';
+        music =
+          'Emotional closing theme that resolves naturally and leaves room for the final image.';
+        mixNotes =
+          'Gradually reduce dialogue and environmental activity while allowing the closing music to resolve naturally.';
+      }
+
+      return {
+        dialogue,
+        voiceDirection,
+        ambientSound,
+        soundEffects,
+        music,
+        mixNotes,
+        continuity:
+          'Maintain consistent character voices, room tone, environmental ambience, and musical identity with neighboring scenes.',
+        emotionTarget: emotion,
+        audioReady: true
+      };
+    };
 
     const scenes = [];
 
-    for (let index = 0; index < sceneCount; index++) {
-      const beat =
-        storyBeats[index % storyBeats.length];
+    for (let i = 0; i < sceneCount; i++) {
+      const beat = beats[i % beats.length];
 
-      const sceneNumber = index + 1;
+      const startTime = i * sceneDuration;
+      const endTime = Math.min(
+        startTime + sceneDuration,
+        filmDuration
+      );
 
-      const startTime =
-        index * sceneDuration;
+      const audioPlan = getAudioPlan(beat, i);
 
-      const endTime =
-        Math.min(
-          startTime + sceneDuration,
-          videoDuration
-        );
+      const characters =
+        characterBible?.characters ||
+        characterBible ||
+        'Use the established characters from the Character Bible.';
 
-      const continuityInstructions = [
-        "Use the Character Bible as the permanent character reference.",
-        "Use the World Bible as the permanent environment reference.",
-        "Keep recurring characters visually identical.",
-        "Keep the same face, hairstyle, age, body type, clothing, and accessories.",
-        "Keep the same home, architecture, furniture, decorations, and environment.",
-        "Maintain consistent lighting and weather.",
-        "Maintain natural human movement and believable facial expressions.",
-        "Do not introduce unexplained characters or locations.",
-        "Maintain cinematic visual continuity with the previous scene.",
-        "Vertical 9:16 composition.",
-        "No subtitles.",
-        "No text on screen.",
-        "No logos.",
-        "No watermark."
-      ].join(" ");
+      const visualStyle =
+        worldBible?.visualStyle ||
+        worldBible?.style ||
+        'Cinematic realistic live-action film style.';
+
+      const continuityInstructions =
+        'Maintain exact character identity, facial appearance, age, hairstyle, clothing, body proportions, environment, architecture, props, time of day, and visual style established by the Character Bible and World Bible. Preserve continuity with adjacent scenes.';
 
       const runwayPrompt = [
-        beat.action,
-        "Location: " + location + ".",
-        "Setting: " + setting + ".",
-        "Lighting: " + lighting + ".",
-        "Atmosphere: " + atmosphere + ".",
-        "Camera: " + beat.camera,
-        "Emotional direction: " + beat.emotion,
-        "Visual style: " + visualStyle + ".",
+        'Cinematic realistic live-action film scene.',
+        `Scene ${i + 1} of ${sceneCount}.`,
+        `Story: ${story}`,
+        `Scene title: ${beat.title}.`,
+        `Phase: ${beat.phase}.`,
+        `Location: ${beat.location}.`,
+        `Setting: ${beat.setting}.`,
+        `Characters: ${characters}.`,
+        `Action: ${beat.action}.`,
+        `Emotion: ${beat.emotion}.`,
+        `Visual style: ${visualStyle}.`,
+        'Natural human movement and realistic facial expressions.',
+        'Professional cinematic composition.',
+        'Realistic lighting and depth.',
+        'Vertical 9:16 composition.',
+        'No subtitles.',
+        'No captions.',
+        'No text overlays.',
         continuityInstructions
-      ].join(" ");
+      ].join(' ');
 
       scenes.push({
-        sceneNumber: sceneNumber,
-
-        startTime: startTime,
-
-        endTime: endTime,
-
-        duration: sceneDuration,
-
+        sceneNumber: i + 1,
+        startTime,
+        endTime,
+        duration: endTime - startTime,
         phase: beat.phase,
-
         title: beat.title,
-
-        location: location,
-
-        setting: setting,
-
-        characters: characterReferences,
-
+        location: beat.location,
+        setting: beat.setting,
+        characters,
         action: beat.action,
-
         dialogue:
-          "Dialogue should be written naturally during the screenplay/dialogue refinement stage. Do not generate subtitles or on-screen text.",
-
-        camera: beat.camera,
-
-        lighting: lighting,
-
-        atmosphere: atmosphere,
-
+          audioPlan.dialogue,
+        camera:
+          'Cinematic camera movement appropriate to the action. Use controlled motion, natural framing, and professional film composition.',
+        lighting:
+          'Natural cinematic lighting appropriate to the location, time of day, and emotional tone.',
+        atmosphere:
+          'Realistic environmental atmosphere consistent with the established world.',
         emotion: beat.emotion,
+        visualStyle,
+        continuityInstructions,
+        runwayPrompt,
 
-        visualStyle: visualStyle,
-
-        continuityInstructions:
-          continuityInstructions,
-
-        runwayPrompt: runwayPrompt
+        audioPlan
       });
     }
 
-    /*
-      Build final Film Plan.
-    */
-
     const filmPlan = {
-      title: "5-Minute Film Plan",
+      title:
+        story.trim().length > 60
+          ? story.trim().slice(0, 60) + '...'
+          : story.trim(),
 
-      story: story,
+      story: story.trim(),
 
-      duration: 300,
+      duration: filmDuration,
 
-      durationFormatted: "5 minutes",
+      durationFormatted: '5 minutes',
 
-      sceneDuration: sceneDuration,
+      sceneDuration,
 
-      sceneCount: sceneCount,
+      sceneCount,
 
       productionFormat: {
-        aspectRatio: "9:16",
-
-        clipLength: sceneDuration,
-
-        totalScenes: sceneCount,
-
-        totalProductionSeconds: 300,
-
-        workflow:
-          "Story → Character Bible → World Bible → Film Plan → Scene Generation → Status Polling → Stitching → Final Film"
+        type: 'AI cinematic short film',
+        aspectRatio: '9:16',
+        resolution: '720x1280',
+        clipDuration: sceneDuration,
+        totalClips: sceneCount
       },
 
-      storyStructure: {
-        opening:
-          sceneCount === 30
-            ? "Scenes 1–3"
-            : "Opening section",
+      storyStructure: isThanksgivingFamilyStory
+        ? 'Opening → Setup → Development → Conflict → Turning Point → Resolution → Closing'
+        : 'Opening → Development → Conflict → Turning Point → Resolution → Closing',
 
-        setup:
-          sceneCount === 30
-            ? "Scenes 4–7"
-            : "Setup section",
+      characterBible,
 
-        development:
-          sceneCount === 30
-            ? "Scenes 8–13"
-            : "Development section",
+      worldBible,
 
-        conflict:
-          sceneCount === 30
-            ? "Scenes 14–18"
-            : "Conflict section",
-
-        climax:
-          sceneCount === 30
-            ? "Scenes 19–26"
-            : "Climax section",
-
-        resolution:
-          sceneCount === 30
-            ? "Scenes 27–30"
-            : "Resolution section"
-      },
-
-      characterBible: characterBible,
-
-      worldBible: worldBible,
-
-      scenes: scenes,
+      scenes,
 
       continuityRules: [
-        "Character Bible is the permanent character reference.",
-        "World Bible is the permanent world reference.",
-        "Never redesign a recurring character between scenes.",
-        "Never randomly change clothing or accessories.",
-        "Never randomly change locations.",
-        "Maintain consistent architecture and furniture.",
-        "Maintain consistent lighting and weather.",
-        "Maintain consistent visual style.",
-        "Every scene must connect naturally to the previous scene.",
-        "Every scene must contain enough visual information to generate a coherent clip.",
-        "Every generated clip must be suitable for final film stitching."
+        'Keep character identity consistent across every scene.',
+        'Keep clothing and physical appearance consistent unless the story explicitly requires a change.',
+        'Keep locations and environmental details consistent.',
+        'Keep lighting and time-of-day continuity consistent.',
+        'Keep props consistent when they reappear.',
+        'Maintain cinematic visual quality across all generated clips.',
+        'Maintain consistent emotional progression between scenes.',
+        'Maintain consistent audio ambience between adjacent scenes.',
+        'Maintain consistent voice identity for recurring characters.',
+        'Maintain a consistent musical identity across the film.'
       ],
+
+      audioProduction: {
+        audioRequired: true,
+
+        audioWorkflow:
+          'Scene dialogue/voice → ambient sound → sound effects → music → audio mix → final video stitch',
+
+        dialoguePolicy:
+          'Dialogue and voice audio are generated or recorded separately from Runway video generation unless explicitly required by the production workflow.',
+
+        voiceContinuity:
+          'Recurring characters must use consistent voice identity, tone, accent, pacing, and emotional characteristics throughout the film.',
+
+        ambientContinuity:
+          'Maintain consistent room tone and environmental ambience between adjacent scenes to avoid noticeable audio transitions.',
+
+        soundEffectsPolicy:
+          'Use realistic synchronized sound effects for visible actions while avoiding unnecessary or exaggerated sounds.',
+
+        musicContinuity:
+          'Maintain a consistent musical identity across the film while allowing intensity and instrumentation to change with the story emotion.',
+
+        mixingPolicy:
+          'Dialogue should remain intelligible and dominant. Music and ambience should support the scene without masking speech.',
+
+        finalMix:
+          'Balance dialogue, voice, ambience, sound effects, and music into a cohesive cinematic soundtrack before final video delivery.'
+      },
 
       generationStatus: {
         runwayCalled: false,
-
         creditsUsed: 0,
-
-        readyForGeneration: true
+        readyForGeneration: true,
+        audioReady: true,
+        audioStatus: 'READY_FOR_AUDIO_GENERATION'
       }
     };
 
-    /*
-      FINAL RESPONSE
-    */
-
     return res.status(200).json({
       success: true,
-
-      filmPlan: filmPlan
+      filmPlan
     });
 
   } catch (error) {
-    console.error(
-      "FILM PLAN ERROR:",
-      error
-    );
+    console.error('FILM PLAN ERROR:', error);
 
     return res.status(500).json({
-      success: false,
-
-      error:
-        error &&
-        error.message
-          ? error.message
-          : "Failed to create Film Plan."
+      error: error.message || 'Failed to build film plan.'
     });
   }
 }
