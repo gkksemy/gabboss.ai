@@ -1,3 +1,4 @@
+```jsx
 import { useState } from "react";
 
 const DEFAULT_STORY = "family thanksgiving dinner in nashville Tn";
@@ -18,6 +19,7 @@ export default function App() {
 
   async function buildBible() {
     setError("");
+    setFilmPlan(null);
 
     if (!story.trim()) {
       setError("Please enter a story.");
@@ -47,11 +49,19 @@ export default function App() {
         );
       }
 
+      if (!data.characterBible || !data.worldBible) {
+        throw new Error(
+          "The Bible was created, but the Character or World Bible data is missing."
+        );
+      }
+
       setCharacterBible(data.characterBible);
       setWorldBible(data.worldBible);
-      setFilmPlan(null);
+
     } catch (err) {
       setError(err.message || "Something went wrong.");
+      setCharacterBible(null);
+      setWorldBible(null);
     } finally {
       setLoadingBible(false);
     }
@@ -66,7 +76,9 @@ export default function App() {
     }
 
     if (!characterBible || !worldBible) {
-      setError("Build the Character & World Bible first.");
+      setError(
+        "Please click BUILD CHARACTER & WORLD BIBLE first."
+      );
       return;
     }
 
@@ -80,13 +92,8 @@ export default function App() {
         },
         body: JSON.stringify({
           story: story.trim(),
-
-          // IMPORTANT:
-          // The actual film is 5 minutes = 300 seconds.
           duration: 300,
-
           clipLength: Number(clipLength),
-
           characterBible,
           worldBible
         })
@@ -100,7 +107,14 @@ export default function App() {
         );
       }
 
+      if (!data.filmPlan) {
+        throw new Error(
+          "The Film Plan API did not return a Film Plan."
+        );
+      }
+
       setFilmPlan(data.filmPlan);
+
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -110,6 +124,7 @@ export default function App() {
 
   return (
     <div className="app">
+
       <header className="hero">
         <div className="hero-inner">
           <h1>GABBOSS.AI FILM</h1>
@@ -122,6 +137,7 @@ export default function App() {
 
         {/* CREATE FILM */}
         <section className="card">
+
           <h2>Create Your Film</h2>
 
           <label>Story</label>
@@ -203,14 +219,14 @@ export default function App() {
             </button>
 
             <button
-              className="secondary"
+              className={
+                characterBible && worldBible
+                  ? "secondary ready"
+                  : "secondary"
+              }
               type="button"
               onClick={buildFilmPlan}
-              disabled={
-                loadingPlan ||
-                !characterBible ||
-                !worldBible
-              }
+              disabled={loadingPlan}
             >
               {loadingPlan
                 ? "BUILDING..."
@@ -219,16 +235,25 @@ export default function App() {
 
           </div>
 
+          {characterBible && worldBible && !filmPlan && (
+            <div className="ready-message">
+              Character Bible and World Bible ready.
+              You can now build the 5-minute Film Plan.
+            </div>
+          )}
+
           {error && (
             <div className="error">
               {error}
             </div>
           )}
+
         </section>
 
         {/* CHARACTER BIBLE */}
         {characterBible && (
           <section className="card">
+
             <h2>Character Bible</h2>
 
             <p className="description">
@@ -237,11 +262,12 @@ export default function App() {
             </p>
 
             {(characterBible.characters || []).map(
-              (character) => (
+              (character, index) => (
                 <div
                   className="character"
-                  key={character.id}
+                  key={character.id || index}
                 >
+
                   <h3>{character.role}</h3>
 
                   <p>
@@ -267,6 +293,7 @@ export default function App() {
                     <strong>Continuity:</strong>{" "}
                     {character.continuity}
                   </p>
+
                 </div>
               )
             )}
@@ -283,12 +310,14 @@ export default function App() {
                 </li>
               ))}
             </ul>
+
           </section>
         )}
 
         {/* WORLD BIBLE */}
         {worldBible && (
           <section className="card">
+
             <h2>World Bible</h2>
 
             <p className="description">
@@ -356,6 +385,7 @@ export default function App() {
                 )
               )}
             </ul>
+
           </section>
         )}
 
@@ -366,6 +396,7 @@ export default function App() {
             <h2>Film Plan</h2>
 
             <div className="plan-summary">
+
               <strong>
                 {filmPlan.sceneCount} scenes ×{" "}
                 {filmPlan.sceneDuration} seconds ={" "}
@@ -375,6 +406,7 @@ export default function App() {
               <span>
                 5-minute film
               </span>
+
             </div>
 
             <div className="zero-credit">
@@ -383,6 +415,7 @@ export default function App() {
             </div>
 
             <div className="structure-box">
+
               <h3>Film Structure</h3>
 
               <p>
@@ -391,32 +424,25 @@ export default function App() {
               </p>
 
               <p>
-                <strong>
-                  Total scenes:
-                </strong>{" "}
+                <strong>Total scenes:</strong>{" "}
                 {filmPlan.sceneCount}
               </p>
 
               <p>
-                <strong>
-                  Clip length:
-                </strong>{" "}
+                <strong>Clip length:</strong>{" "}
                 {filmPlan.sceneDuration} seconds
               </p>
 
               <p>
-                <strong>
-                  Total duration:
-                </strong>{" "}
+                <strong>Total duration:</strong>{" "}
                 {filmPlan.duration} seconds
               </p>
 
               <p>
-                <strong>
-                  Format:
-                </strong>{" "}
+                <strong>Format:</strong>{" "}
                 9:16 vertical
               </p>
+
             </div>
 
             <div className="scene-list">
@@ -431,8 +457,7 @@ export default function App() {
                     <div className="scene-header">
 
                       <h3>
-                        Scene{" "}
-                        {scene.sceneNumber}:{" "}
+                        Scene {scene.sceneNumber}:{" "}
                         {scene.title}
                       </h3>
 
@@ -447,37 +472,27 @@ export default function App() {
                     </p>
 
                     <p>
-                      <strong>
-                        Action:
-                      </strong>{" "}
+                      <strong>Action:</strong>{" "}
                       {scene.action}
                     </p>
 
                     <p>
-                      <strong>
-                        Emotion:
-                      </strong>{" "}
+                      <strong>Emotion:</strong>{" "}
                       {scene.emotion}
                     </p>
 
                     <p>
-                      <strong>
-                        Camera:
-                      </strong>{" "}
+                      <strong>Camera:</strong>{" "}
                       {scene.camera}
                     </p>
 
                     <p>
-                      <strong>
-                        Location:
-                      </strong>{" "}
+                      <strong>Location:</strong>{" "}
                       {scene.location}
                     </p>
 
                     <p>
-                      <strong>
-                        Runway Prompt:
-                      </strong>{" "}
+                      <strong>Runway Prompt:</strong>{" "}
                       {scene.runwayPrompt}
                     </p>
 
@@ -521,7 +536,6 @@ export default function App() {
             Inter,
             Arial,
             sans-serif;
-
           background:
             radial-gradient(
               circle at top,
@@ -529,7 +543,6 @@ export default function App() {
               #090d16 45%,
               #05070c 100%
             );
-
           color: #f4f7fb;
         }
 
@@ -563,7 +576,6 @@ export default function App() {
         .hero-inner {
           width:
             min(1100px, 100%);
-
           margin:
             0 auto;
         }
@@ -692,9 +704,7 @@ export default function App() {
 
         .options {
           display: flex;
-
           flex-wrap: wrap;
-
           gap: 10px;
         }
 
@@ -715,7 +725,8 @@ export default function App() {
           border-radius:
             999px;
 
-          cursor: pointer;
+          cursor:
+            pointer;
         }
 
         .option.active {
@@ -731,13 +742,10 @@ export default function App() {
 
         .film-target {
           display: flex;
-
           flex-direction: column;
-
           gap: 4px;
 
           margin-top: 24px;
-
           padding: 16px;
 
           border-radius: 12px;
@@ -768,7 +776,8 @@ export default function App() {
           color:
             #dce6f7;
 
-          font-size: 1.05rem;
+          font-size:
+            1.05rem;
         }
 
         .film-target small {
@@ -778,11 +787,8 @@ export default function App() {
 
         .button-row {
           display: flex;
-
           flex-wrap: wrap;
-
           gap: 12px;
-
           margin-top: 26px;
         }
 
@@ -815,7 +821,21 @@ export default function App() {
           background:
             #2a3952;
 
-          color: white;
+          color:
+            white;
+
+          cursor:
+            pointer;
+
+          opacity: 1;
+        }
+
+        .secondary.ready {
+          background:
+            #eef4ff;
+
+          color:
+            #08101d;
 
           cursor:
             pointer;
@@ -824,9 +844,40 @@ export default function App() {
         .primary:disabled,
         .secondary:disabled {
           opacity: 0.5;
+          cursor: not-allowed;
+        }
 
-          cursor:
-            not-allowed;
+        .ready-message {
+          margin-top: 16px;
+
+          padding:
+            12px 14px;
+
+          border-radius:
+            10px;
+
+          background:
+            rgba(
+              80,
+              170,
+              120,
+              0.12
+            );
+
+          border:
+            1px solid
+            rgba(
+              100,
+              200,
+              140,
+              0.25
+            );
+
+          color:
+            #a9e6bc;
+
+          font-weight:
+            700;
         }
 
         .error {
@@ -912,13 +963,10 @@ export default function App() {
 
         .plan-summary {
           display: flex;
-
           flex-direction: column;
-
           gap: 5px;
 
           padding: 16px;
-
           margin:
             16px 0;
 
@@ -1010,7 +1058,6 @@ export default function App() {
 
         .scene-list {
           display: grid;
-
           gap: 16px;
         }
 
@@ -1134,9 +1181,11 @@ export default function App() {
             width:
               100%;
           }
+
         }
 
       `}</style>
     </div>
   );
 }
+```
