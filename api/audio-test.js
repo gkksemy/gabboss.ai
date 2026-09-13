@@ -1,13 +1,18 @@
-```javascript
 // api/audio-test.js
-// ElevenLabs Scene 1 audio test
-// ZERO Runway credits are used here.
+// GABBOSS.AI FILM
+// ElevenLabs Scene 1 Audio Test
+//
+// ZERO Runway credits are used.
 //
 // Required Vercel Environment Variable:
 // ELEVENLABS_API_KEY
 
 export default async function handler(req, res) {
   try {
+    console.log("====================================");
+    console.log("ELEVENLABS AUDIO TEST STARTED");
+    console.log("====================================");
+
     // ---------------------------------------------------------
     // METHOD CHECK
     // ---------------------------------------------------------
@@ -23,130 +28,188 @@ export default async function handler(req, res) {
     // ---------------------------------------------------------
     const apiKey = process.env.ELEVENLABS_API_KEY;
 
-    if (!apiKey) {
+    if (!apiKey || typeof apiKey !== "string" || !apiKey.trim()) {
       console.error("ELEVENLABS_API_KEY is missing.");
 
       return res.status(500).json({
         success: false,
-        error: "ELEVENLABS_API_KEY is not configured in Vercel."
+        error: "ELEVENLABS_API_KEY is not available to this Vercel function.",
+        step: "environment"
       });
     }
 
+    console.log("ElevenLabs API key detected.");
+
     // ---------------------------------------------------------
-    // READ REQUEST BODY
+    // REQUEST BODY
     // ---------------------------------------------------------
     let body = req.body;
 
-    // Some Vercel configurations can provide the body as a string.
     if (typeof body === "string") {
       try {
         body = JSON.parse(body);
-      } catch (parseError) {
+      } catch (error) {
+        console.error("Request body JSON parsing failed.");
+
         return res.status(400).json({
           success: false,
-          error: "Invalid JSON request body."
+          error: "Invalid JSON request body.",
+          step: "request-body"
         });
       }
     }
 
-    body = body || {};
+    if (!body || typeof body !== "object") {
+      body = {};
+    }
 
+    // ---------------------------------------------------------
+    // TEXT
+    // ---------------------------------------------------------
     const text =
       typeof body.text === "string"
         ? body.text.trim()
         : "";
 
-    const voiceId =
-      typeof body.voiceId === "string" && body.voiceId.trim()
-        ? body.voiceId.trim()
-        : "JBFqnCBsd6RMkjVDRZzb";
-
-    const modelId =
-      typeof body.modelId === "string" && body.modelId.trim()
-        ? body.modelId.trim()
-        : "eleven_multilingual_v2";
-
-    // ---------------------------------------------------------
-    // TEXT CHECK
-    // ---------------------------------------------------------
     if (!text) {
       return res.status(400).json({
         success: false,
-        error: "Please provide Scene 1 text."
+        error: "Please provide Scene 1 text.",
+        step: "text"
       });
     }
 
-    console.log("Starting ElevenLabs Scene 1 audio test.");
+    // ---------------------------------------------------------
+    // VOICE
+    // ---------------------------------------------------------
+    const voiceId =
+      typeof body.voiceId === "string" &&
+      body.voiceId.trim()
+        ? body.voiceId.trim()
+        : "JBFqnCBsd6RMkjVDRZzb";
+
+    // ---------------------------------------------------------
+    // MODEL
+    // ---------------------------------------------------------
+    const modelId =
+      typeof body.modelId === "string" &&
+      body.modelId.trim()
+        ? body.modelId.trim()
+        : "eleven_multilingual_v2";
+
     console.log("Voice ID:", voiceId);
-    console.log("Model:", modelId);
+    console.log("Model ID:", modelId);
     console.log("Text length:", text.length);
 
     // ---------------------------------------------------------
-    // ELEVENLABS REQUEST
+    // ELEVENLABS URL
     // ---------------------------------------------------------
     const elevenLabsUrl =
       `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(
         voiceId
       )}`;
 
-    const elevenLabsResponse = await fetch(elevenLabsUrl, {
-      method: "POST",
+    console.log("Calling ElevenLabs...");
+    console.log("Endpoint:", elevenLabsUrl);
 
-      headers: {
-        "xi-api-key": apiKey,
-        "Content-Type": "application/json",
-        "Accept": "audio/mpeg"
-      },
+    // ---------------------------------------------------------
+    // ELEVENLABS REQUEST
+    // ---------------------------------------------------------
+    const elevenLabsResponse = await fetch(
+      elevenLabsUrl,
+      {
+        method: "POST",
 
-      body: JSON.stringify({
-        text: text,
+        headers: {
+          "xi-api-key": apiKey.trim(),
+          "Content-Type": "application/json",
+          "Accept": "audio/mpeg"
+        },
 
-        model_id: modelId,
+        body: JSON.stringify({
+          text,
+          model_id: modelId,
 
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-          style: 0.25,
-          use_speaker_boost: true
-        }
-      })
-    });
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+            style: 0.25,
+            use_speaker_boost: true
+          }
+        })
+      }
+    );
+
+    console.log(
+      "ElevenLabs response status:",
+      elevenLabsResponse.status
+    );
 
     // ---------------------------------------------------------
     // ELEVENLABS ERROR
     // ---------------------------------------------------------
     if (!elevenLabsResponse.ok) {
-      const errorText = await elevenLabsResponse.text();
+      const errorText =
+        await elevenLabsResponse.text();
 
       console.error(
-        "ElevenLabs returned an error:",
-        elevenLabsResponse.status,
+        "===================================="
+      );
+
+      console.error(
+        "ELEVENLABS REQUEST FAILED"
+      );
+
+      console.error(
+        "Status:",
+        elevenLabsResponse.status
+      );
+
+      console.error(
+        "Response:",
         errorText
+      );
+
+      console.error(
+        "===================================="
       );
 
       return res.status(502).json({
         success: false,
-        error: "ElevenLabs audio generation failed.",
-        elevenLabsStatus: elevenLabsResponse.status,
+        error: "ElevenLabs rejected the audio request.",
+        step: "elevenlabs",
+        elevenLabsStatus:
+          elevenLabsResponse.status,
         details: errorText
       });
     }
 
     // ---------------------------------------------------------
-    // AUDIO RESPONSE
+    // READ AUDIO
     // ---------------------------------------------------------
     const audioArrayBuffer =
       await elevenLabsResponse.arrayBuffer();
 
-    const audioBuffer =
-      Buffer.from(audioArrayBuffer);
+    if (!audioArrayBuffer || audioArrayBuffer.byteLength === 0) {
+      console.error(
+        "ElevenLabs returned an empty audio response."
+      );
+
+      return res.status(502).json({
+        success: false,
+        error: "ElevenLabs returned an empty audio file.",
+        step: "audio-response"
+      });
+    }
 
     console.log(
-      "ElevenLabs audio generated successfully.",
-      "Bytes:",
-      audioBuffer.length
+      "Audio bytes received:",
+      audioArrayBuffer.byteLength
     );
 
+    // ---------------------------------------------------------
+    // SEND AUDIO
+    // ---------------------------------------------------------
     res.setHeader(
       "Content-Type",
       "audio/mpeg"
@@ -159,30 +222,60 @@ export default async function handler(req, res) {
 
     res.setHeader(
       "Cache-Control",
-      "no-store, no-cache, must-revalidate"
+      "no-store"
     );
 
     res.setHeader(
       "Content-Length",
-      audioBuffer.length
+      String(audioArrayBuffer.byteLength)
     );
 
-    return res.status(200).send(audioBuffer);
+    console.log(
+      "Sending audio back to browser."
+    );
+
+    return res.status(200).send(
+      Buffer.from(audioArrayBuffer)
+    );
 
   } catch (error) {
+    // ---------------------------------------------------------
+    // UNEXPECTED SERVER ERROR
+    // ---------------------------------------------------------
     console.error(
-      "AUDIO TEST FUNCTION CRASHED:",
+      "===================================="
+    );
+
+    console.error(
+      "AUDIO TEST FUNCTION CRASHED"
+    );
+
+    console.error(
+      "Error:",
       error
+    );
+
+    console.error(
+      "Message:",
+      error?.message
+    );
+
+    console.error(
+      "Stack:",
+      error?.stack
+    );
+
+    console.error(
+      "===================================="
     );
 
     return res.status(500).json({
       success: false,
       error: "Audio test server error.",
+      step: "server",
       details:
-        error && error.message
-          ? error.message
-          : String(error)
+        error?.message ||
+        String(error)
     });
   }
 }
-```
