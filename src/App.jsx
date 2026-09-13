@@ -3,6 +3,9 @@ import { useState } from "react";
 const DEFAULT_STORY =
   "family thanksgiving dinner in nashville Tn";
 
+const DEFAULT_AUDIO_TEXT =
+  "The house was full of laughter, warm food, and the sound of family coming together for Thanksgiving dinner.";
+
 function App() {
   const [story, setStory] = useState(DEFAULT_STORY);
   const [characters, setCharacters] = useState("");
@@ -18,16 +21,50 @@ function App() {
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [loadingQueue, setLoadingQueue] = useState(false);
 
-  const [testGenerating, setTestGenerating] = useState(false);
-  const [testStatus, setTestStatus] = useState("READY");
-  const [testProgress, setTestProgress] = useState(0);
-  const [testTaskId, setTestTaskId] = useState("");
-  const [testVideoUrl, setTestVideoUrl] = useState("");
-  const [runwayApiCalls, setRunwayApiCalls] = useState(0);
-  const [creditsUsed, setCreditsUsed] = useState(0);
+  // ---------------------------------------------------------
+  // ELEVENLABS AUDIO TEST STATE
+  // ---------------------------------------------------------
+  const [audioText, setAudioText] =
+    useState(DEFAULT_AUDIO_TEXT);
+
+  const [audioGenerating, setAudioGenerating] =
+    useState(false);
+
+  const [audioStatus, setAudioStatus] =
+    useState("READY");
+
+  const [audioUrl, setAudioUrl] =
+    useState("");
+
+  // ---------------------------------------------------------
+  // RUNWAY TEST STATE
+  // ---------------------------------------------------------
+  const [testGenerating, setTestGenerating] =
+    useState(false);
+
+  const [testStatus, setTestStatus] =
+    useState("READY");
+
+  const [testProgress, setTestProgress] =
+    useState(0);
+
+  const [testTaskId, setTestTaskId] =
+    useState("");
+
+  const [testVideoUrl, setTestVideoUrl] =
+    useState("");
+
+  const [runwayApiCalls, setRunwayApiCalls] =
+    useState(0);
+
+  const [creditsUsed, setCreditsUsed] =
+    useState(0);
 
   const [error, setError] = useState("");
 
+  // ---------------------------------------------------------
+  // BUILD CHARACTER + WORLD BIBLE
+  // ---------------------------------------------------------
   async function buildBible() {
     setError("");
     setFilmPlan(null);
@@ -85,6 +122,9 @@ function App() {
     }
   }
 
+  // ---------------------------------------------------------
+  // BUILD 5-MINUTE FILM PLAN
+  // ---------------------------------------------------------
   async function buildFilmPlan() {
     setError("");
     setGenerationQueue(null);
@@ -144,6 +184,9 @@ function App() {
     }
   }
 
+  // ---------------------------------------------------------
+  // BUILD GENERATION QUEUE
+  // ---------------------------------------------------------
   async function buildGenerationQueue() {
     setError("");
 
@@ -204,6 +247,101 @@ function App() {
     }
   }
 
+  // ---------------------------------------------------------
+  // ELEVENLABS AUDIO TEST
+  // ZERO RUNWAY CREDITS
+  // ---------------------------------------------------------
+  async function generateSceneOneAudio() {
+    setError("");
+    setAudioUrl("");
+    setAudioStatus("STARTING");
+
+    if (!audioText.trim()) {
+      setError(
+        "Please enter some Scene 1 text for the audio test."
+      );
+      setAudioStatus("ERROR");
+      return;
+    }
+
+    setAudioGenerating(true);
+
+    try {
+      setAudioStatus("GENERATING");
+
+      const response = await fetch(
+        "/api/audio-test",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            text: audioText.trim()
+          })
+        }
+      );
+
+      if (!response.ok) {
+        let errorMessage =
+          "ElevenLabs audio generation failed.";
+
+        try {
+          const data =
+            await response.json();
+
+          if (data && data.error) {
+            errorMessage = data.error;
+          }
+
+          if (
+            data &&
+            data.details
+          ) {
+            errorMessage +=
+              " " +
+              String(data.details);
+          }
+        } catch (jsonError) {
+          // The server may return non-JSON errors.
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const audioBlob =
+        await response.blob();
+
+      if (
+        !audioBlob ||
+        audioBlob.size === 0
+      ) {
+        throw new Error(
+          "ElevenLabs returned an empty audio file."
+        );
+      }
+
+      const objectUrl =
+        URL.createObjectURL(audioBlob);
+
+      setAudioUrl(objectUrl);
+      setAudioStatus("SUCCEEDED");
+    } catch (err) {
+      setAudioStatus("FAILED");
+
+      setError(
+        err.message ||
+          "Scene 1 audio generation failed."
+      );
+    } finally {
+      setAudioGenerating(false);
+    }
+  }
+
+  // ---------------------------------------------------------
+  // RUNWAY TEST
+  // DO NOT USE UNTIL CREDITS ARE AVAILABLE
+  // ---------------------------------------------------------
   async function generateTestSceneOne() {
     setError("");
     setTestVideoUrl("");
@@ -309,10 +447,12 @@ function App() {
       );
     } catch (err) {
       setTestStatus("FAILED");
+
       setError(
         err.message ||
           "Scene 1 generation failed."
       );
+
       setTestGenerating(false);
     }
   }
@@ -358,7 +498,10 @@ function App() {
           data.state === "success" ||
           data.status === "SUCCEEDED"
         ) {
-          if (!data.video_url && !data.videoUrl) {
+          if (
+            !data.video_url &&
+            !data.videoUrl
+          ) {
             throw new Error(
               "Runway finished, but no video URL was returned."
             );
@@ -411,27 +554,38 @@ function App() {
         await wait(5000);
       } catch (err) {
         setTestStatus("FAILED");
+
         setError(
           err.message ||
             "Unable to check Scene 1 status."
         );
+
         setTestGenerating(false);
         return;
       }
     }
 
     setTestStatus("TIMEOUT");
+
     setError(
       "Scene 1 generation is taking longer than expected. Check the Runway task status before starting another generation."
     );
+
     setTestGenerating(false);
   }
 
+  // ---------------------------------------------------------
+  // RESET
+  // ---------------------------------------------------------
   function resetProject() {
     setCharacterBible(null);
     setWorldBible(null);
     setFilmPlan(null);
     setGenerationQueue(null);
+
+    setAudioUrl("");
+    setAudioStatus("READY");
+    setAudioText(DEFAULT_AUDIO_TEXT);
 
     setTestGenerating(false);
     setTestStatus("READY");
@@ -508,8 +662,8 @@ function App() {
           >
             Turn a story idea into a structured
             5-minute AI film plan with consistent
-            characters, locations, scenes, and
-            cinematic direction.
+            characters, locations, scenes, audio,
+            and cinematic direction.
           </p>
         </header>
 
@@ -529,7 +683,7 @@ function App() {
               marginBottom: "6px"
             }}
           >
-            Controlled Runway test mode
+            Controlled production test mode
           </div>
 
           <div
@@ -539,14 +693,17 @@ function App() {
               fontSize: "14px"
             }}
           >
-            Your planning system remains fully
-            active. Runway testing is limited to
-            Scene 1 only. No other scene will be
-            generated until we verify the first
-            result.
+            Planning, story structure, scene
+            organization, and ElevenLabs audio
+            testing can be performed without using
+            Runway video credits. Runway remains
+            locked until you are ready.
           </div>
         </div>
 
+        {/* -------------------------------------------------
+            STEP 1
+        -------------------------------------------------- */}
         <section
           style={{
             background: "#101010",
@@ -572,8 +729,8 @@ function App() {
               lineHeight: 1.5
             }}
           >
-            Describe the story you want to turn into
-            a 5-minute film.
+            Describe the story you want to turn
+            into a 5-minute film.
           </p>
 
           <label
@@ -709,6 +866,7 @@ function App() {
                   setClipLength(
                     Number(e.target.value)
                   );
+
                   setFilmPlan(null);
                   setGenerationQueue(null);
                   setTestVideoUrl("");
@@ -787,6 +945,9 @@ function App() {
           </div>
         </section>
 
+        {/* -------------------------------------------------
+            ERROR
+        -------------------------------------------------- */}
         {error && (
           <div
             style={{
@@ -803,6 +964,9 @@ function App() {
           </div>
         )}
 
+        {/* -------------------------------------------------
+            STEP 2 CHARACTER BIBLE
+        -------------------------------------------------- */}
         {characterBible && (
           <section
             style={{
@@ -883,6 +1047,9 @@ function App() {
           </section>
         )}
 
+        {/* -------------------------------------------------
+            WORLD BIBLE
+        -------------------------------------------------- */}
         {worldBible && (
           <section
             style={{
@@ -942,6 +1109,9 @@ function App() {
           </section>
         )}
 
+        {/* -------------------------------------------------
+            STEP 3 FILM PLAN
+        -------------------------------------------------- */}
         {characterBible && worldBible && (
           <section
             style={{
@@ -1024,6 +1194,9 @@ function App() {
           </section>
         )}
 
+        {/* -------------------------------------------------
+            STEP 4 GENERATION QUEUE
+        -------------------------------------------------- */}
         {filmPlan && (
           <section
             style={{
@@ -1100,14 +1273,18 @@ function App() {
           </section>
         )}
 
+        {/* -------------------------------------------------
+            STEP 5 ELEVENLABS AUDIO TEST
+        -------------------------------------------------- */}
         {generationQueue && (
           <section
             style={{
               background:
-                "linear-gradient(135deg, #111, #191919)",
+                "linear-gradient(135deg, #101010, #181818)",
               border: "1px solid #333",
               borderRadius: "20px",
-              padding: "26px"
+              padding: "26px",
+              marginBottom: "24px"
             }}
           >
             <div
@@ -1127,7 +1304,7 @@ function App() {
                 fontSize: "24px"
               }}
             >
-              Video Generation Test
+              Scene 1 Audio Test
             </h2>
 
             <p
@@ -1137,8 +1314,311 @@ function App() {
                 marginBottom: "20px"
               }}
             >
-              Your Runway credits are now available.
-              We will test only Scene 1 first. This
+              Test the ElevenLabs voice generation
+              before spending any Runway video
+              credits. This test uses the
+              <strong style={{ color: "#fff" }}>
+                {" "}ElevenLabs API only.
+              </strong>
+            </p>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(150px, 1fr))",
+                gap: "12px",
+                marginBottom: "20px"
+              }}
+            >
+              <InfoBox
+                label="Test"
+                value="Scene 1 Audio"
+              />
+
+              <InfoBox
+                label="Provider"
+                value="ElevenLabs"
+              />
+
+              <InfoBox
+                label="Model"
+                value="Multilingual v2"
+              />
+
+              <InfoBox
+                label="Runway Credits"
+                value="0"
+              />
+            </div>
+
+            <label
+              style={{
+                display: "block",
+                marginBottom: "8px",
+                fontWeight: 700,
+                fontSize: "14px"
+              }}
+            >
+              Scene 1 narration / dialogue
+            </label>
+
+            <textarea
+              value={audioText}
+              onChange={function (e) {
+                setAudioText(e.target.value);
+                setAudioUrl("");
+                setAudioStatus("READY");
+              }}
+              rows={6}
+              placeholder="Enter the dialogue or narration you want ElevenLabs to speak..."
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                resize: "vertical",
+                background: "#080808",
+                color: "#fff",
+                border: "1px solid #333",
+                borderRadius: "12px",
+                padding: "16px",
+                fontSize: "15px",
+                lineHeight: 1.6,
+                outline: "none",
+                marginBottom: "16px"
+              }}
+            />
+
+            <button
+              type="button"
+              onClick={generateSceneOneAudio}
+              disabled={audioGenerating}
+              style={{
+                width: "100%",
+                border: "none",
+                borderRadius: "12px",
+                padding: "17px",
+                background:
+                  audioGenerating
+                    ? "#333"
+                    : "#fff",
+                color:
+                  audioGenerating
+                    ? "#888"
+                    : "#000",
+                fontWeight: 800,
+                fontSize: "16px",
+                cursor: audioGenerating
+                  ? "not-allowed"
+                  : "pointer"
+              }}
+            >
+              {audioGenerating
+                ? "Generating ElevenLabs Audio..."
+                : "Generate Scene 1 Audio"}
+            </button>
+
+            <div
+              style={{
+                marginTop: "18px",
+                background: "#080808",
+                border: "1px solid #292929",
+                borderRadius: "14px",
+                padding: "16px"
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  marginBottom: "10px"
+                }}
+              >
+                <span
+                  style={{
+                    color: "#777",
+                    fontSize: "12px",
+                    letterSpacing: "0.8px"
+                  }}
+                >
+                  AUDIO STATUS
+                </span>
+
+                <span
+                  style={{
+                    color:
+                      audioStatus ===
+                      "SUCCEEDED"
+                        ? "#9be49b"
+                        : audioStatus ===
+                            "FAILED" ||
+                          audioStatus ===
+                            "ERROR"
+                        ? "#ff9b9b"
+                        : "#aaa",
+                    fontWeight: 800,
+                    fontSize: "12px"
+                  }}
+                >
+                  {audioStatus}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  color: "#777",
+                  fontSize: "13px",
+                  lineHeight: 1.5
+                }}
+              >
+                {audioStatus ===
+                  "READY" &&
+                  "Ready to generate the Scene 1 voice test."}
+
+                {audioStatus ===
+                  "STARTING" &&
+                  "Starting ElevenLabs request..."}
+
+                {audioStatus ===
+                  "GENERATING" &&
+                  "ElevenLabs is generating the MP3 audio..."}
+
+                {audioStatus ===
+                  "SUCCEEDED" &&
+                  "Audio generated successfully. Use the player below to listen."}
+
+                {(audioStatus ===
+                  "FAILED" ||
+                  audioStatus ===
+                    "ERROR") &&
+                  "The audio test failed. Check the error message above and your Vercel ElevenLabs configuration."}
+              </div>
+            </div>
+
+            {audioUrl && (
+              <div
+                style={{
+                  marginTop: "20px",
+                  background: "#080808",
+                  border: "1px solid #292929",
+                  borderRadius: "16px",
+                  padding: "18px"
+                }}
+              >
+                <div
+                  style={{
+                    color: "#777",
+                    fontSize: "12px",
+                    letterSpacing: "1px",
+                    marginBottom: "10px"
+                  }}
+                >
+                  SCENE 1 AUDIO RESULT
+                </div>
+
+                <h3
+                  style={{
+                    margin: "0 0 16px",
+                    fontSize: "20px"
+                  }}
+                >
+                  ElevenLabs Voice Test
+                </h3>
+
+                <audio
+                  src={audioUrl}
+                  controls
+                  style={{
+                    width: "100%"
+                  }}
+                />
+
+                <div
+                  style={{
+                    marginTop: "16px",
+                    padding: "14px",
+                    background: "#142014",
+                    border: "1px solid #294329",
+                    borderRadius: "12px",
+                    color: "#9be49b",
+                    lineHeight: 1.5,
+                    fontSize: "13px",
+                    textAlign: "center"
+                  }}
+                >
+                  Scene 1 audio generated successfully.
+                  <br />
+                  This test used zero Runway credits.
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* -------------------------------------------------
+            STEP 6 RUNWAY TEST
+        -------------------------------------------------- */}
+        {generationQueue && (
+          <section
+            style={{
+              background:
+                "linear-gradient(135deg, #111, #191919)",
+              border: "1px solid #333",
+              borderRadius: "20px",
+              padding: "26px"
+            }}
+          >
+            <div
+              style={{
+                color: "#777",
+                fontSize: "12px",
+                letterSpacing: "1px",
+                marginBottom: "8px"
+              }}
+            >
+              STEP 6
+            </div>
+
+            <h2
+              style={{
+                margin: "0 0 10px",
+                fontSize: "24px"
+              }}
+            >
+              Video Generation Test
+            </h2>
+
+            <div
+              style={{
+                background: "#211b0d",
+                border: "1px solid #6b5521",
+                borderRadius: "12px",
+                padding: "15px",
+                marginBottom: "20px",
+                color: "#e6d19a",
+                lineHeight: 1.6,
+                fontSize: "14px"
+              }}
+            >
+              <strong>
+                Runway test locked.
+              </strong>
+              <br />
+              The Scene 1 Runway button is being
+              kept available in the application, but
+              do not press it until Runway credits
+              have been added and verified.
+            </div>
+
+            <p
+              style={{
+                color: "#999",
+                lineHeight: 1.6,
+                marginBottom: "20px"
+              }}
+            >
+              When Runway credits are available,
+              we will test only Scene 1 first. This
               creates one 10-second video and does
               not start Scenes 2–30.
             </p>
@@ -1180,30 +1660,20 @@ function App() {
             <button
               type="button"
               onClick={generateTestSceneOne}
-              disabled={testGenerating}
+              disabled={true}
               style={{
                 width: "100%",
-                border: "none",
+                border: "1px solid #444",
                 borderRadius: "12px",
                 padding: "17px",
-                background:
-                  testGenerating
-                    ? "#333"
-                    : "#fff",
-                color:
-                  testGenerating
-                    ? "#888"
-                    : "#000",
+                background: "#222",
+                color: "#777",
                 fontWeight: 800,
                 fontSize: "16px",
-                cursor: testGenerating
-                  ? "not-allowed"
-                  : "pointer"
+                cursor: "not-allowed"
               }}
             >
-              {testGenerating
-                ? "Generating Scene 1..."
-                : "Generate Test Scene 1"}
+              Runway Test Locked — Add Credits First
             </button>
 
             <div
@@ -1240,7 +1710,7 @@ function App() {
                       "SUCCEEDED"
                         ? "#9be49b"
                         : testStatus ===
-                          "FAILED"
+                            "FAILED"
                         ? "#ff9b9b"
                         : "#aaa",
                     fontWeight: 800,
@@ -1362,25 +1832,6 @@ function App() {
                 </div>
               </div>
             )}
-
-            {!testVideoUrl &&
-              testStatus === "READY" && (
-                <div
-                  style={{
-                    marginTop: "18px",
-                    padding: "14px",
-                    background: "#111",
-                    border: "1px solid #252525",
-                    borderRadius: "12px",
-                    color: "#777",
-                    fontSize: "13px",
-                    textAlign: "center"
-                  }}
-                >
-                  Ready to generate Scene 1.
-                  Scenes 2–30 will remain untouched.
-                </div>
-              )}
           </section>
         )}
       </div>
@@ -1388,6 +1839,9 @@ function App() {
   );
 }
 
+// ---------------------------------------------------------
+// RUNWAY FALLBACK PROMPT
+// ---------------------------------------------------------
 function buildFallbackRunwayPrompt(
   scene,
   filmPlan,
@@ -1473,12 +1927,18 @@ function buildFallbackRunwayPrompt(
   return parts.join(" ");
 }
 
+// ---------------------------------------------------------
+// WAIT
+// ---------------------------------------------------------
 function wait(milliseconds) {
   return new Promise(function (resolve) {
     setTimeout(resolve, milliseconds);
   });
 }
 
+// ---------------------------------------------------------
+// BIBLE CARD
+// ---------------------------------------------------------
 function BibleCard(props) {
   return (
     <div
@@ -1515,6 +1975,9 @@ function BibleCard(props) {
   );
 }
 
+// ---------------------------------------------------------
+// FILM PLAN DISPLAY
+// ---------------------------------------------------------
 function FilmPlanDisplay(props) {
   const filmPlan = props.filmPlan;
 
@@ -1683,6 +2146,9 @@ function FilmPlanDisplay(props) {
   );
 }
 
+// ---------------------------------------------------------
+// GENERATION QUEUE DISPLAY
+// ---------------------------------------------------------
 function GenerationQueueDisplay(props) {
   const queue = props.queue;
 
@@ -1916,6 +2382,9 @@ function GenerationQueueDisplay(props) {
   );
 }
 
+// ---------------------------------------------------------
+// SCENE CARD
+// ---------------------------------------------------------
 function SceneCard(props) {
   const scene = props.scene;
   const index = props.index;
@@ -2103,6 +2572,9 @@ function SceneCard(props) {
   );
 }
 
+// ---------------------------------------------------------
+// SCENE FIELD
+// ---------------------------------------------------------
 function SceneField(props) {
   return (
     <div>
@@ -2132,6 +2604,9 @@ function SceneField(props) {
   );
 }
 
+// ---------------------------------------------------------
+// INFO BOX
+// ---------------------------------------------------------
 function InfoBox(props) {
   return (
     <div
@@ -2165,6 +2640,9 @@ function InfoBox(props) {
   );
 }
 
+// ---------------------------------------------------------
+// FORMAT TITLE
+// ---------------------------------------------------------
 function formatTitle(value) {
   return String(value)
     .replace(/([A-Z])/g, " $1")
@@ -2177,6 +2655,9 @@ function formatTitle(value) {
     .trim();
 }
 
+// ---------------------------------------------------------
+// RENDER VALUE
+// ---------------------------------------------------------
 function renderValue(value) {
   if (
     value === null ||
